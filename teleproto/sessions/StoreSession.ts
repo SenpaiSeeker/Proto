@@ -2,16 +2,20 @@ import { MemorySession } from "./Memory";
 import store, { StoreBase } from "store2";
 import { AuthKey } from "../crypto/AuthKey";
 import bigInt from "big-integer";
-import { LocalStorage } from "node-localstorage";
+import { FileStore } from "./FileStore";
 import { isAbsolute, resolve } from "path";
 import { existsSync } from "fs";
 
 /**
- * Persistent session that stores auth keys and entity data on disk using `node-localstorage`.
+ * Persistent session that stores auth keys and entity data on disk.
  *
  * Accepts an absolute path or a directory relative to the working directory.
  * Reuses an existing legacy directory when the absolute target is absent.
  * Suitable for long-running server applications where session data must survive restarts.
+ *
+ * The on-disk format is compatible with `node-localstorage` (one file per key),
+ * but writes are flushed asynchronously, so keeping hundreds of file sessions
+ * up to date does not block the event loop.
  *
  * @example
  * ```ts
@@ -21,6 +25,7 @@ import { existsSync } from "fs";
  */
 export class StoreSession extends MemorySession {
     private readonly sessionName: string;
+    private readonly fileStore: FileStore;
     private store: StoreBase;
 
     constructor(sessionName: string, divider = ":") {
@@ -32,16 +37,23 @@ export class StoreSession extends MemorySession {
         }
         const directory = resolve(sessionName);
         const legacyDirectory = resolve("./" + sessionName);
-        this.store = store.area(
-            sessionName,
-            new LocalStorage(isAbsolute(sessionName) && !existsSync(directory) && existsSync(legacyDirectory)
-                ? legacyDirectory
-                : directory)
-        );
+        this.fileStore = new FileStore(isAbsolute(sessionName) && !existsSync(directory) && existsSync(legacyDirectory)
+            ? legacyDirectory
+            : directory);
+        this.store = store.area(sessionName, this.fileStore);
         if (divider == undefined) {
             divider = ":";
         }
         this.sessionName = sessionName + divider;
+    }
+
+    /**
+     * Waits until every queued write has been persisted to disk.
+     * Session updates are flushed automatically; call this when the
+     * process needs a durability barrier (shutdown, file swap, tests).
+     */
+    async flush(): Promise<void> {
+        await this.fileStore.flush();
     }
 
     async load() {
