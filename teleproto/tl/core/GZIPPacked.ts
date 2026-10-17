@@ -1,5 +1,5 @@
 import { serializeBytes } from "../runtime/helpers";
-import { unzipSync } from "zlib";
+import { unzip } from "zlib";
 import type { BinaryReader } from "../../extensions";
 
 export class GZIPPacked {
@@ -31,8 +31,16 @@ export class GZIPPacked {
         //return Buffer.from(deflate(input, { level: 9, gzip: true }))
     }
 
-    static ungzip(input: Buffer): Buffer {
-        return unzipSync(input);
+    static async ungzip(input: Buffer): Promise<Buffer> {
+        return await new Promise<Buffer>((resolve, reject) => {
+            unzip(input, (error, result) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+                resolve(result);
+            });
+        });
     }
 
     async toBytes(): Promise<Buffer> {
