@@ -34,7 +34,7 @@ export declare class PromisedNetSockets {
         head?: Buffer;
     } | undefined>;
     connect(port: number, ip: string): Promise<unknown>;
-    write(data: Buffer): void;
+    write(data: Buffer): Promise<void>;
     close(): Promise<void>;
     receive(): Promise<void>;
     toString(): string;

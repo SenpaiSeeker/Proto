@@ -216,13 +216,38 @@ class PromisedNetSockets {
             }
         });
     }
-    write(data) {
+    async write(data) {
         if (this.closed) {
             throw new NetSocketClosedError();
         }
-        if (this.client) {
-            this.client.write(data);
+        const socket = this.client;
+        if (!socket)
+            return;
+        if (socket.write(data) !== false) {
+            return;
         }
+        await new Promise((resolve, reject) => {
+            const onDrain = () => {
+                cleanup();
+                resolve();
+            };
+            const onError = (error) => {
+                cleanup();
+                reject(error);
+            };
+            const onClose = () => {
+                cleanup();
+                reject(new NetSocketClosedError());
+            };
+            const cleanup = () => {
+                socket.removeListener("drain", onDrain);
+                socket.removeListener("error", onError);
+                socket.removeListener("close", onClose);
+            };
+            socket.once("drain", onDrain);
+            socket.once("error", onError);
+            socket.once("close", onClose);
+        });
     }
     async close() {
         const socket = this.client;

@@ -1,6 +1,7 @@
 import type { ProxyInterface } from "../network/connection/TCPMTProxy";
 interface WebSocketLike {
     binaryType: string;
+    bufferedAmount?: number;
     send(data: Uint8Array): void;
     close(code?: number): void;
     onopen: ((ev?: unknown) => void) | null;
@@ -28,7 +29,7 @@ export declare class PromisedWebSockets {
     readAll(): Promise<Buffer>;
     private _consume;
     connect(port: number, ip: string, testServers?: boolean): Promise<this>;
-    write(data: Buffer): void;
+    write(data: Buffer): Promise<void>;
     close(): Promise<void>;
     toString(): string;
 }

@@ -6,7 +6,7 @@ export interface PacketReader {
 export interface SocketInterface extends PacketReader {
     connect(port: number, ip: string, testServers?: boolean): Promise<unknown>;
     readAll(): Promise<Buffer>;
-    write(data: Buffer): void;
+    write(data: Buffer): void | Promise<void>;
     close(): Promise<void>;
     lastDataAt?: number;
 }

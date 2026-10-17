@@ -10,7 +10,7 @@ declare class ObfuscatedIO {
     initHeader(): Promise<void>;
     read(n: number): Promise<Buffer>;
     readExactly(n: number): Promise<Buffer>;
-    write(data: Buffer): void;
+    write(data: Buffer): void | Promise<void>;
     dispose(): void;
 }
 export declare class ConnectionTCPObfuscated extends ObfuscatedConnection {

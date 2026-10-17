@@ -68,7 +68,7 @@ class ObfuscatedIO {
         return this.read(n);
     }
     write(data) {
-        this.connection.write(this._encrypt.encryptInPlace(data));
+        return this.connection.write(this._encrypt.encryptInPlace(data));
     }
     dispose() {
         this._encrypt?.dispose();

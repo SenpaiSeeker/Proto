@@ -114,7 +114,7 @@ class MTProxyIO {
         return this.read(n);
     }
     write(data) {
-        this.stream.write(this.encryptor.encryptInPlace(data));
+        return this.stream.write(this.encryptor.encryptInPlace(data));
     }
     dispose() {
         this.encryptor?.dispose();
@@ -294,16 +294,16 @@ class FakeTlsSocket {
     }
     async handshake() {
         const hello = this.sendClientHello();
-        this.inner.write(hello);
+        await this.inner.write(hello);
         await this.readAndVerifyServerHandshake();
     }
-    write(data) {
+    async write(data) {
         for (let off = 0; off < data.length; off += TLS_RECORD_MAX_PAYLOAD) {
             const chunkLen = Math.min(TLS_RECORD_MAX_PAYLOAD, data.length - off);
             const hdr = Buffer.alloc(TLS_RECORD_HEADER_LEN);
             TLS_APP_DATA_PREFIX.copy(hdr, 0);
             hdr.writeUInt16BE(chunkLen, 3);
-            this.inner.write(Buffer.concat([hdr, data.subarray(off, off + chunkLen)]));
+            await this.inner.write(Buffer.concat([hdr, data.subarray(off, off + chunkLen)]));
         }
     }
     async readExactly(n) {

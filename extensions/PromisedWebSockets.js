@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PromisedWebSockets = void 0;
 const closeError = new Error("WebSocket was closed");
+const WS_SEND_HIGH_WATER = 1 << 20;
 class PromisedWebSockets {
     static { this.isWebSocket = true; }
     constructor(proxy, _keepAliveInterval) {
@@ -131,12 +132,18 @@ class PromisedWebSockets {
         });
         return this;
     }
-    write(data) {
+    async write(data) {
         if (this.closed) {
             throw closeError;
         }
-        if (this.client) {
-            this.client.send(data);
+        const client = this.client;
+        if (!client)
+            return;
+        client.send(data);
+        while (!this.closed &&
+            this.client === client &&
+            (client.bufferedAmount ?? 0) > WS_SEND_HIGH_WATER) {
+            await new Promise((resolve) => setTimeout(resolve, 2));
         }
     }
     async close() {
