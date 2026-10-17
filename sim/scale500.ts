@@ -17,6 +17,8 @@
 import bigInt from "big-integer";
 import { randomBytes } from "crypto";
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from "fs";
+import { createServer, Socket } from "node:net";
+import type { AddressInfo } from "node:net";
 import { Writable } from "stream";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -26,6 +28,7 @@ import { gzipSync, unzipSync } from "zlib";
 import { TelegramClient } from "../teleproto/client/TelegramClient";
 import { AuthKey } from "../teleproto/crypto/AuthKey";
 import { Connection } from "../teleproto/network/connection/Connection";
+import { PromisedNetSockets } from "../teleproto/extensions/PromisedNetSockets";
 import { StringSession } from "../teleproto/sessions/StringSession";
 import { StoreSession } from "../teleproto/sessions/StoreSession";
 import { Api } from "../teleproto/tl";
@@ -244,7 +247,7 @@ async function phaseConnect(
     return {
         blocking: isBlocking(report),
         line:
-            `[1/6] connect          : ${connected}/${clients.length} clients in ${elapsed.toFixed(1)} ms` +
+            `[1/7] connect          : ${connected}/${clients.length} clients in ${elapsed.toFixed(1)} ms` +
             ` | loop p99=${report.p99.toFixed(1)} ms stall-max=${report.sampleMax.toFixed(1)} ms stalls>=${STALL_MS}ms=${report.stallCount}`,
     };
 }
@@ -285,7 +288,7 @@ async function phasePing(
     return {
         blocking: isBlocking(report),
         line:
-            `[2/6] ping storm       : ${pings} encrypted pings, ${(sentBytes / 1024).toFixed(1)} KB in ${seconds} s` +
+            `[2/7] ping storm       : ${pings} encrypted pings, ${(sentBytes / 1024).toFixed(1)} KB in ${seconds} s` +
             ` | loop p99=${report.p99.toFixed(1)} ms stall-max=${report.sampleMax.toFixed(1)} ms stalls>=${STALL_MS}ms=${report.stallCount}`,
     };
 }
@@ -329,7 +332,7 @@ async function phaseGzip(): Promise<{ line: string; blocking: boolean }> {
     return {
         blocking: isBlocking(asyncReport),
         line:
-            `[3/6] gzip ${(payload.length / (1024 * 1024)).toFixed(1)} MB x20 : ` +
+            `[3/7] gzip ${(payload.length / (1024 * 1024)).toFixed(1)} MB x20 : ` +
             `unzipSync(legacy) wall=${syncWall.toFixed(1)} ms stall=${syncReport.stallMs.toFixed(0)} ms` +
             ` | GZIPPacked.ungzip(patched) wall=${asyncWall.toFixed(1)} ms stall=${asyncReport.stallMs.toFixed(0)} ms`,
     };
@@ -381,7 +384,7 @@ async function phaseStoreSessions(
         blocking:
             isBlocking(writeReport) || isBlocking(loadReport),
         line:
-            `[4/6] StoreSession x${count} : write ${writeWall.toFixed(0)} ms (stall ${writeReport.stallMs.toFixed(0)} ms)` +
+            `[4/7] StoreSession x${count} : write ${writeWall.toFixed(0)} ms (stall ${writeReport.stallMs.toFixed(0)} ms)` +
             ` load ${loadWall.toFixed(0)} ms (stall ${loadReport.stallMs.toFixed(0)} ms)` +
             ` delete ${deleteWall.toFixed(0)} ms (stall ${deleteReport.stallMs.toFixed(0)} ms)`,
     };
@@ -510,7 +513,7 @@ async function phaseSessionStorm(
     return {
         blocking: isBlocking(readReport) || isBlocking(legacyReport),
         line:
-            `[5/6] session storm     : ${sessions} sessions x ${rows} rows, ${lookups} reads (${memoryHits} hits)` +
+            `[5/7] session storm     : ${sessions} sessions x ${rows} rows, ${lookups} reads (${memoryHits} hits)` +
             ` | read ${readWall.toFixed(0)} ms (${readPerOpUs.toFixed(1)} us/op, stall ${readReport.stallMs.toFixed(0)} ms)` +
             ` | raw readFileSync ${legacyWall.toFixed(0)} ms (${legacyPerOpUs.toFixed(1)} us/op, stall ${legacyReport.stallMs.toFixed(0)} ms)` +
             `\n                         seed ${seedWall.toFixed(0)} ms (stall ${seedReport.stallMs.toFixed(0)} ms)` +
@@ -580,9 +583,79 @@ async function phaseDownloadWrites(
     return {
         blocking: isBlocking(patched.report),
         line:
-            `[6/6] download writes   : ${writers} slow sinks x ${fileKb} KB (${chunksPerFile} chunks, sink ${sinkDelayMs} ms/chunk)` +
+            `[6/7] download writes   : ${writers} slow sinks x ${fileKb} KB (${chunksPerFile} chunks, sink ${sinkDelayMs} ms/chunk)` +
             ` | writeWithBackpressure peak-queued ${(patched.peakQueued / (1024 * 1024)).toFixed(1)} MB rss ${patched.rssDelta.toFixed(0)} MB wall ${patched.wall.toFixed(0)} ms` +
             ` | raw stream.write peak-queued ${(legacy.peakQueued / (1024 * 1024)).toFixed(1)} MB rss ${legacy.rssDelta.toFixed(0)} MB wall ${legacy.wall.toFixed(0)} ms`,
+    };
+}
+
+async function phaseSocketBackpressure(
+    chunkKb: number,
+    chunks: number
+): Promise<{ line: string; blocking: boolean }> {
+    const chunk = Buffer.alloc(chunkKb * 1024, 11);
+    const totalMb = (chunkKb * chunks) / 1024;
+    const server = createServer((socket) => {
+        socket.pause();
+        const timer = setInterval(() => {
+            socket.resume();
+            setTimeout(() => socket.pause(), 2);
+        }, 5);
+        socket.on("close", () => clearInterval(timer));
+        socket.on("error", () => undefined);
+    });
+    await new Promise<void>((resolve) =>
+        server.listen(0, "127.0.0.1", () => resolve())
+    );
+    const port = (server.address() as AddressInfo).port;
+
+    const legacyMonitor = new LoopMonitor();
+    legacyMonitor.start();
+    const legacySocket = new Socket();
+    legacySocket.setNoDelay(true);
+    await new Promise<void>((resolve, reject) => {
+        legacySocket.once("error", reject);
+        legacySocket.connect(port, "127.0.0.1", () => resolve());
+    });
+    let legacyPeak = 0;
+    for (let i = 0; i < chunks; i += 1) {
+        legacySocket.write(chunk);
+        if (legacySocket.writableLength > legacyPeak) {
+            legacyPeak = legacySocket.writableLength;
+        }
+    }
+    await new Promise<void>((resolve) => legacySocket.end(() => resolve()));
+    legacySocket.destroy();
+    const legacyReport = await legacyMonitor.stop();
+
+    const patchedMonitor = new LoopMonitor();
+    patchedMonitor.start();
+    const socket = new PromisedNetSockets();
+    await socket.connect(port, "127.0.0.1");
+    let patchedPeak = 0;
+    const sampler = setInterval(() => {
+        const queued = (socket as any).client?.writableLength ?? 0;
+        if (queued > patchedPeak) {
+            patchedPeak = queued;
+        }
+    }, 1);
+    const started = performance.now();
+    for (let i = 0; i < chunks; i += 1) {
+        await socket.write(chunk);
+    }
+    const wall = performance.now() - started;
+    clearInterval(sampler);
+    await socket.close();
+    const patchedReport = await patchedMonitor.stop();
+
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+
+    const kb = (value: number) => `${(value / 1024).toFixed(0)} KB`;
+    return {
+        blocking: isBlocking(patchedReport) || isBlocking(legacyReport),
+        line:
+            `[7/7] socket backpressure: ${totalMb.toFixed(0)} MB to a slow TCP peer (${wall.toFixed(0)} ms patched)` +
+            ` | await-drain peak ${kb(patchedPeak)} | raw write peak ${kb(legacyPeak)}`,
     };
 }
 
@@ -647,6 +720,10 @@ async function main(): Promise<void> {
     const downloadWrites = await phaseDownloadWrites(options.sessions, 512);
     blocking = blocking || downloadWrites.blocking;
     lines.push(downloadWrites.line);
+
+    const socketBackpressure = await phaseSocketBackpressure(1024, 12);
+    blocking = blocking || socketBackpressure.blocking;
+    lines.push(socketBackpressure.line);
 
     const teardownStarted = performance.now();
     await Promise.race([

@@ -1,9 +1,11 @@
 import type { ProxyInterface } from "../network/connection/TCPMTProxy";
 
 const closeError = new Error("WebSocket was closed");
+const WS_SEND_HIGH_WATER = 1 << 20;
 
 interface WebSocketLike {
     binaryType: string;
+    bufferedAmount?: number;
     send(data: Uint8Array): void;
     close(code?: number): void;
     onopen: ((ev?: unknown) => void) | null;
@@ -176,12 +178,19 @@ export class PromisedWebSockets {
         return this;
     }
 
-    write(data: Buffer) {
+    async write(data: Buffer): Promise<void> {
         if (this.closed) {
             throw closeError;
         }
-        if (this.client) {
-            this.client.send(data);
+        const client = this.client;
+        if (!client) return;
+        client.send(data);
+        while (
+            !this.closed &&
+            this.client === client &&
+            (client.bufferedAmount ?? 0) > WS_SEND_HIGH_WATER
+        ) {
+            await new Promise((resolve) => setTimeout(resolve, 2));
         }
     }
 

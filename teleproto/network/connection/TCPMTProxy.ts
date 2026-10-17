@@ -177,7 +177,7 @@ function pickObfuscationHeader(): Buffer {
 
 interface ByteStream {
     readExactly(n: number): Promise<Buffer>;
-    write(data: Buffer): void;
+    write(data: Buffer): void | Promise<void>;
 }
 
 /**
@@ -253,8 +253,8 @@ class MTProxyIO {
         return this.read(n);
     }
 
-    write(data: Buffer): void {
-        this.stream.write(this.encryptor!.encryptInPlace(data));
+    write(data: Buffer): void | Promise<void> {
+        return this.stream.write(this.encryptor!.encryptInPlace(data));
     }
 
     dispose(): void {
@@ -473,17 +473,17 @@ class FakeTlsSocket implements ByteStream {
 
     async handshake(): Promise<void> {
         const hello = this.sendClientHello();
-        this.inner.write(hello);
+        await this.inner.write(hello);
         await this.readAndVerifyServerHandshake();
     }
 
-    write(data: Buffer): void {
+    async write(data: Buffer): Promise<void> {
         for (let off = 0; off < data.length; off += TLS_RECORD_MAX_PAYLOAD) {
             const chunkLen = Math.min(TLS_RECORD_MAX_PAYLOAD, data.length - off);
             const hdr = Buffer.alloc(TLS_RECORD_HEADER_LEN);
             TLS_APP_DATA_PREFIX.copy(hdr, 0);
             hdr.writeUInt16BE(chunkLen, 3);
-            this.inner.write(
+            await this.inner.write(
                 Buffer.concat([hdr, data.subarray(off, off + chunkLen)])
             );
         }

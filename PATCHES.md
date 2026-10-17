@@ -110,6 +110,47 @@ of growing with the file size.
 `lstatSync` per download; it is now an `async` function using
 `fs.promises.lstat`. Downloads no longer issue synchronous stats.
 
+## 6. Backpressure on the socket write path
+
+The transport never awaited the socket: `PromisedNetSockets.write` called
+`this.client.write(data)` and returned nothing, and `Connection._send` (and
+the obfuscated/MTProxy/WebSocket variants) called the socket without
+awaiting. A slow or congested peer therefore let the write loop push every
+batched request into the socket's userland buffer — with media parts of up to
+1 MB per batch, a stalled connection could accumulate megabytes per client,
+multiplied by hundreds of clients.
+
+`PromisedNetSockets.write` is now `async` and, when `socket.write()` reports a
+full buffer, waits for `drain` (rejecting on `error`/`close` so a dead socket
+cannot hang the sender). The whole chain propagates and awaits that promise:
+`Connection._send`, `ObfuscatedConnection._send`/`_initConn`,
+`ObfuscatedIO.write`, `MTProxyIO.write`, `FakeTlsSocket.write`/`handshake`,
+and `PromisedWebSockets.write` (waits while `bufferedAmount` is above 1 MB).
+The WEB-proxy `RelaySocket` keeps its own bounded queue and is unchanged.
+
+Only one reader and one writer still exist per sender; the write loop now
+simply pauses while the kernel buffer is full instead of buffering the whole
+backlog in userland.
+
+### Audit of the remaining hot paths
+
+The same pass reviewed the other pieces that see 500-client concurrency and
+found them already bounded:
+
+- `MediaScheduler`/`BalancePolicy` bound per-DC in-flight media requests and
+  pace sends; retries are capped and abortable.
+- `SenderSlot`/`Network` ref-count media sessions and close idle ones on a
+  timer, so media sockets do not pile up per client.
+- Uploads read file parts lazily (`CustomBuffer` uses `fs.promises.open` +
+  positional reads for files above ~20 MB) instead of loading large files
+  into memory.
+- `EntityCache` is an LRU capped at 4096 entries, the update manager's
+  recent-message dedup queue is capped and its channel timers are cleared on
+  stop, and `crc32` already uses the native `zlib.crc32` when available.
+- Session `FileStore.getItem` reads are the only remaining synchronous file
+  reads by design (the session API is synchronous); they are plain page-cache
+  reads and the entity layer above them is now memory-first (patch 3).
+
 ## Scale simulation
 
 `sim/scale500.ts` reproduces the deployment shape without contacting
@@ -124,20 +165,22 @@ npm install
 npx ts-node --transpile-only sim/scale500.ts --clients=500 --seconds=20 --sessions=500
 ```
 
-Reference run (Node v26.10.0, 6 vCPU container, `1.230.1-seeker.2`):
+Reference run (Node v26.10.0, 6 vCPU container, `1.230.1-seeker.3`):
 
 ```
-[1/6] connect          : 500/500 clients in 83.0 ms | loop p99=0.0 ms stall-max=124.5 ms stalls>=250ms=0
-[2/6] ping storm       : 20000 encrypted pings, 2261.7 KB in 20 s | loop p99=29.3 ms stall-max=49.7 ms stalls>=250ms=0
-[3/6] gzip 4.2 MB x20 : unzipSync(legacy) wall=199.5 ms stall=192 ms | GZIPPacked.ungzip(patched) wall=488.7 ms stall=29 ms
-[4/6] StoreSession x500 : write 136 ms (stall 139 ms) load 67 ms (stall 71 ms) delete 31 ms (stall 33 ms)
-[5/6] session storm     : 500 sessions x 40 rows, 200000 reads (200000 hits)
-                         | read 95 ms (0.5 us/op, stall 0 ms)
-                         | raw readFileSync 147 ms (7.3 us/op, stall 0 ms)
-                         seed 2177 ms (stall 868 ms) writes 95 ms (stall 32 ms) flush 22 ms (stall 0 ms)
-[6/6] download writes   : 500 slow sinks x 512 KB (16 chunks, sink 2 ms/chunk)
-                         | writeWithBackpressure peak-queued 31.2 MB rss +42 MB wall 433 ms
-                         | raw stream.write peak-queued 250.0 MB rss +105 MB wall 416 ms
+[1/7] connect          : 500/500 clients in 84.5 ms | loop p99=0.0 ms stall-max=136.5 ms stalls>=250ms=0
+[2/7] ping storm       : 20000 encrypted pings, 2261.7 KB in 20 s | loop p99=31.2 ms stall-max=49.5 ms stalls>=250ms=0
+[3/7] gzip 4.2 MB x20 : unzipSync(legacy) wall=196.5 ms stall=188 ms | GZIPPacked.ungzip(patched) wall=452.5 ms stall=27 ms
+[4/7] StoreSession x500 : write 142 ms (stall 144 ms) load 69 ms (stall 72 ms) delete 36 ms (stall 41 ms)
+[5/7] session storm     : 500 sessions x 40 rows, 200000 reads (200000 hits)
+                         | read 117 ms (0.6 us/op, stall 0 ms)
+                         | raw readFileSync 139 ms (6.9 us/op, stall 0 ms)
+                         seed 2158 ms (stall 874 ms) writes 99 ms (stall 32 ms) flush 16 ms (stall 0 ms)
+[6/7] download writes   : 500 slow sinks x 512 KB (16 chunks, sink 2 ms/chunk)
+                         | writeWithBackpressure peak-queued 31.2 MB rss +22 MB wall 488 ms
+                         | raw stream.write peak-queued 250.0 MB rss +125 MB wall 399 ms
+[7/7] socket backpressure: 12 MB to a slow TCP peer (58 ms patched)
+                         | await-drain peak 1024 KB | raw write peak 10240 KB
 VERDICT: no blocking I/O detected
 ```
 
@@ -146,7 +189,11 @@ Phase 5 compares the memory-first entity lookup against the raw
 traffic). Phase 6 models a consumer slower than the network (the reason to
 apply backpressure): without `writeWithBackpressure` all 500 writers queue
 their entire file (250 MB) in userland, with it the queue stays at ~31 MB —
-bounded by the high-water mark instead of the download size.
+bounded by the high-water mark instead of the download size. Phase 7 pushes
+12 MB through a real loopback TCP peer that reads in short bursts: the raw
+socket path (what the transport used to do) queues ~10 MB in userland, while
+`PromisedNetSockets.write` stays bounded at one in-flight chunk (1 MB) and
+pauses the sender until the peer drains.
 
 The `seed` measurement in phase 5 is session/entity *creation* (constructors
 plus `processEntities` row building for 20 000 entities); it is one-off setup

@@ -111,7 +111,7 @@ class Connection {
 
     async _send(data: Buffer) {
         const encodedPacket = this._codec.encodePacket(data);
-        this.socket.write(encodedPacket);
+        await this.socket.write(encodedPacket);
     }
 
     async _recv() {
@@ -132,11 +132,11 @@ class ObfuscatedConnection extends Connection {
     async _initConn() {
         this._obfuscation = new this.ObfuscatedIO(this);
         await this._obfuscation.initHeader();
-        this.socket.write(this._obfuscation.header);
+        await this.socket.write(this._obfuscation.header);
     }
 
     async _send(data: Buffer) {
-        this._obfuscation.write(this._codec.encodePacket(data));
+        await this._obfuscation.write(this._codec.encodePacket(data));
     }
 
     async _recv() {

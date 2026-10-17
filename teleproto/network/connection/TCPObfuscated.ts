@@ -81,7 +81,7 @@ class ObfuscatedIO {
     }
 
     write(data: Buffer) {
-        this.connection.write(this._encrypt!.encryptInPlace(data));
+        return this.connection.write(this._encrypt!.encryptInPlace(data));
     }
 
     dispose() {

@@ -223,13 +223,37 @@ export class PromisedNetSockets {
         });
     }
 
-    write(data: Buffer) {
+    async write(data: Buffer): Promise<void> {
         if (this.closed) {
             throw new NetSocketClosedError();
         }
-        if (this.client) {
-            this.client.write(data);
+        const socket = this.client;
+        if (!socket) return;
+        if (socket.write(data) !== false) {
+            return;
         }
+        await new Promise<void>((resolve, reject) => {
+            const onDrain = () => {
+                cleanup();
+                resolve();
+            };
+            const onError = (error: Error) => {
+                cleanup();
+                reject(error);
+            };
+            const onClose = () => {
+                cleanup();
+                reject(new NetSocketClosedError());
+            };
+            const cleanup = () => {
+                socket.removeListener("drain", onDrain);
+                socket.removeListener("error", onError);
+                socket.removeListener("close", onClose);
+            };
+            socket.once("drain", onDrain);
+            socket.once("error", onError);
+            socket.once("close", onClose);
+        });
     }
 
     async close() {
