@@ -15,6 +15,8 @@
 export declare class FileStore {
     private readonly directory;
     private readonly keys;
+    private readonly pendingAdded;
+    private keysScanned;
     private readonly pending;
     private chain;
     private flushQueued;
@@ -29,6 +31,13 @@ export declare class FileStore {
     removeItem(key: string): void;
     clear(): void;
     flush(): Promise<void>;
+    private hasKeyRecord;
+    /**
+     * Loads the on-disk key index on first use. Sessions that only read and
+     * write known keys (the normal case) never pay for the directory scan, so
+     * opening hundreds of sessions at boot stays cheap.
+     */
+    private ensureKeys;
     private scheduleFlush;
     private writeAtomic;
 }

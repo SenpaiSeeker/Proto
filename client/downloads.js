@@ -231,7 +231,7 @@ async function streamSequential(client, location, route, partSize, writer, signa
             if (hashChecker) {
                 await hashChecker.verify(idx * partSize, data);
             }
-            await writer.write(data);
+            await (0, OrderedWriter_1.writeWithBackpressure)(writer, data);
             await onBytes(data.length);
         }
         if (data.length < partSize)
@@ -357,10 +357,10 @@ async function _downloadDocument(client, doc, outputFile, date, thumb, progressC
     }
     let size;
     if (thumb == undefined) {
-        outputFile = getProperFilename(outputFile, "document", "." + (utils.getExtension(doc) || "bin"), date);
+        outputFile = await getProperFilename(outputFile, "document", "." + (utils.getExtension(doc) || "bin"), date);
     }
     else {
-        outputFile = getProperFilename(outputFile, "photo", ".jpg", date);
+        outputFile = await getProperFilename(outputFile, "photo", ".jpg", date);
         size = getThumb(doc.thumbs || [], thumb);
         if (size instanceof tl_1.Api.PhotoCachedSize ||
             size instanceof tl_1.Api.PhotoStrippedSize) {
@@ -462,7 +462,7 @@ async function _downloadCachedPhotoSize(size, outputFile) {
     }
     const writer = getWriter(outputFile);
     try {
-        await writer.write(data);
+        await (0, OrderedWriter_1.writeWithBackpressure)(writer, data);
         await closeWriter(writer);
     }
     catch (err) {
@@ -471,13 +471,18 @@ async function _downloadCachedPhotoSize(size, outputFile) {
     }
     return returnWriterValue(writer);
 }
-function getProperFilename(file, fileType, extension, date) {
+async function getProperFilename(file, fileType, extension, date) {
     if (!file || typeof file != "string") {
         return file;
     }
-    if (fs.existsSync(file) && fs.lstatSync(file).isDirectory()) {
-        let fullName = fileType + date + extension;
-        return path_1.default.join(file, fullName);
+    try {
+        if ((await fs.promises.lstat(file)).isDirectory()) {
+            const fullName = fileType + date + extension;
+            return path_1.default.join(file, fullName);
+        }
+    }
+    catch {
+        return file;
     }
     return file;
 }
@@ -500,7 +505,7 @@ async function _downloadPhoto(client, photo, file, date, thumb, progressCallback
     if (!date) {
         date = Date.now();
     }
-    file = getProperFilename(file, "photo", ".jpg", date);
+    file = await getProperFilename(file, "photo", ".jpg", date);
     if (size instanceof tl_1.Api.PhotoCachedSize ||
         size instanceof tl_1.Api.PhotoStrippedSize) {
         return _downloadCachedPhotoSize(size, file);

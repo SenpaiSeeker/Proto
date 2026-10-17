@@ -28,12 +28,13 @@ function encodeKey(key) {
 class FileStore {
     constructor(directory) {
         this.keys = [];
+        this.pendingAdded = [];
+        this.keysScanned = false;
         this.pending = new Map();
         this.chain = Promise.resolve();
         this.flushQueued = false;
         this.writeCounter = 0;
         this.directory = directory;
-        let exists = true;
         try {
             if (!(0, fs_1.statSync)(directory).isDirectory()) {
                 throw new Error(`A file exists at the location '${directory}' when trying to create/open session storage`);
@@ -43,25 +44,18 @@ class FileStore {
             if (error.code !== "ENOENT") {
                 throw error;
             }
-            exists = false;
-        }
-        if (!exists) {
-            (0, fs_1.mkdirSync)(directory, { recursive: true });
-        }
-        for (const name of (0, fs_1.readdirSync)(this.directory)) {
-            if (name.endsWith(".tmp")) {
-                continue;
-            }
-            this.keys.push(decodeURIComponent(name));
         }
     }
     get length() {
+        this.ensureKeys();
         return this.keys.length;
     }
     key(index) {
+        this.ensureKeys();
         return this.keys[index] ?? null;
     }
     has(key) {
+        this.ensureKeys();
         return this.keys.includes(key);
     }
     getItem(key) {
@@ -76,22 +70,29 @@ class FileStore {
         }
     }
     setItem(key, value) {
-        if (!this.keys.includes(key)) {
-            this.keys.push(key);
+        if (!this.hasKeyRecord(key)) {
+            this.pendingAdded.push(key);
         }
         this.pending.set(key, `${value}`);
         this.scheduleFlush();
     }
     removeItem(key) {
-        const index = this.keys.indexOf(key);
-        if (index >= 0) {
-            this.keys.splice(index, 1);
+        const pendingIndex = this.pendingAdded.indexOf(key);
+        if (pendingIndex >= 0) {
+            this.pendingAdded.splice(pendingIndex, 1);
+        }
+        if (this.keysScanned) {
+            const index = this.keys.indexOf(key);
+            if (index >= 0) {
+                this.keys.splice(index, 1);
+            }
         }
         this.pending.set(key, undefined);
         this.scheduleFlush();
     }
     clear() {
         this.keys.length = 0;
+        this.pendingAdded.length = 0;
         this.pending.clear();
         let names = [];
         try {
@@ -125,6 +126,44 @@ class FileStore {
             throw error;
         }
     }
+    hasKeyRecord(key) {
+        if (!this.keysScanned) {
+            return this.pendingAdded.includes(key);
+        }
+        return this.keys.includes(key);
+    }
+    /**
+     * Loads the on-disk key index on first use. Sessions that only read and
+     * write known keys (the normal case) never pay for the directory scan, so
+     * opening hundreds of sessions at boot stays cheap.
+     */
+    ensureKeys() {
+        if (this.keysScanned) {
+            return;
+        }
+        this.keysScanned = true;
+        let names = [];
+        try {
+            names = (0, fs_1.readdirSync)(this.directory);
+        }
+        catch (error) {
+            if (error.code !== "ENOENT") {
+                throw error;
+            }
+        }
+        for (const name of names) {
+            if (name.endsWith(".tmp")) {
+                continue;
+            }
+            this.keys.push(decodeURIComponent(name));
+        }
+        for (const key of this.pendingAdded) {
+            if (!this.keys.includes(key)) {
+                this.keys.push(key);
+            }
+        }
+        this.pendingAdded.length = 0;
+    }
     scheduleFlush() {
         if (this.flushQueued) {
             return;
@@ -132,6 +171,10 @@ class FileStore {
         this.flushQueued = true;
         this.chain = this.chain.then(async () => {
             this.flushQueued = false;
+            if (this.pending.size === 0) {
+                return;
+            }
+            await (0, promises_1.mkdir)(this.directory, { recursive: true });
             while (this.pending.size > 0) {
                 const batch = Array.from(this.pending.entries());
                 this.pending.clear();

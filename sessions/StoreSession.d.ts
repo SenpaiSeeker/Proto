@@ -22,6 +22,7 @@ export declare class StoreSession extends MemorySession {
     private readonly sessionName;
     private readonly fileStore;
     private store;
+    private entityRowsLoaded;
     constructor(sessionName: string, divider?: string);
     /**
      * Waits until every queued write has been persisted to disk.
@@ -43,5 +44,6 @@ export declare class StoreSession extends MemorySession {
     getEntityRowsByPhone(phone: string): string[] | undefined;
     getEntityRowsByUsername(username: string): string[] | undefined;
     getEntityRowsByName(name: string): string[] | undefined;
+    private ensureEntityRows;
     private findEntityRow;
 }

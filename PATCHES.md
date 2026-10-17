@@ -66,6 +66,50 @@ was verified in both directions with `setDC`, auth keys, per-DC auth keys and
 
 `node-localstorage` (and its `@types`) is no longer a dependency.
 
+The on-disk key index is also loaded lazily now: opening a session only does
+a single `statSync` to validate the path, and the directory scan happens on
+first use of `length`/`key()`/`has()`. Sessions that read and write known
+keys — the normal case — never scan at all, which keeps opening hundreds of
+file sessions at boot cheap. Keys written before the scan are merged into the
+index when it loads, and the session directory itself is created
+asynchronously on the first flush.
+
+## 3. Entity lookups served from memory
+
+`StoreSession` used to answer every `getEntityRowsById` with a synchronous
+`readFileSync` + `JSON.parse` off the entity file, and
+`getEntityRowsByPhone/Username/Name` scanned every stored key on disk. With
+hundreds of sessions resolving peers from updates and message bursts, those
+sync reads ran on the event loop on the hot path.
+
+`StoreSession` now keeps entity rows in the same in-memory map `MemorySession`
+uses: `processEntities` populates it while writing through to disk, lookups
+hit the map first, and a single lazy disk scan backfills it the first time a
+row is missing (which also loads the rows persisted by previous runs). The
+row shapes returned to callers are unchanged.
+
+## 4. Backpressure on download writes
+
+The download loops (`OrderedWriter._drain`, `streamSequential`,
+`_downloadCachedPhotoSize`) called `writer.write(chunk)` and awaited the
+result. For a `WriteStream` that result is a boolean — `await false` resolves
+immediately — so the loops kept pulling parts as fast as the network
+delivered them and queued every byte in the stream buffer. One download could
+hold a whole multi-hundred-megabyte file in memory, and hundreds of
+concurrent downloads amplified that into an OOM risk.
+
+A shared `writeWithBackpressure(writer, data)` helper now waits for the
+`drain` event when a stream reports a full buffer (it stays a no-op for
+`BinaryWriter` and other non-stream writers). Peak queued bytes stay bounded
+by the stream high-water mark and the configured in-flight part count instead
+of growing with the file size.
+
+## 5. Non-blocking filename probe
+
+`getProperFilename` (called for directory outputs) used `existsSync` plus
+`lstatSync` per download; it is now an `async` function using
+`fs.promises.lstat`. Downloads no longer issue synchronous stats.
+
 ## Scale simulation
 
 `sim/scale500.ts` reproduces the deployment shape without contacting
@@ -80,17 +124,33 @@ npm install
 npx ts-node --transpile-only sim/scale500.ts --clients=500 --seconds=20 --sessions=500
 ```
 
-Reference run (Node v26.10.0, 6 vCPU container):
+Reference run (Node v26.10.0, 6 vCPU container, `1.230.1-seeker.2`):
 
 ```
-[1/4] connect          : 500/500 clients in 138.2 ms | loop p99=0.0 ms  stall-max=210.0 ms stalls>=250ms=0
-[2/4] ping storm       : 20000 encrypted pings, 2261.7 KB in 20 s
-                         | loop p99=28.6 ms stall-max=53.0 ms stalls>=250ms=0
-[3/4] gzip 4.2 MB x20  : unzipSync(legacy) wall=176.6 ms stall=168 ms
-                         | GZIPPacked.ungzip(patched) wall=485.2 ms stall=27 ms
-[4/4] StoreSession x500 : write 174 ms (stall 172 ms) load 115 ms (stall 122 ms) delete 5 ms (stall 0 ms)
+[1/6] connect          : 500/500 clients in 83.0 ms | loop p99=0.0 ms stall-max=124.5 ms stalls>=250ms=0
+[2/6] ping storm       : 20000 encrypted pings, 2261.7 KB in 20 s | loop p99=29.3 ms stall-max=49.7 ms stalls>=250ms=0
+[3/6] gzip 4.2 MB x20 : unzipSync(legacy) wall=199.5 ms stall=192 ms | GZIPPacked.ungzip(patched) wall=488.7 ms stall=29 ms
+[4/6] StoreSession x500 : write 136 ms (stall 139 ms) load 67 ms (stall 71 ms) delete 31 ms (stall 33 ms)
+[5/6] session storm     : 500 sessions x 40 rows, 200000 reads (200000 hits)
+                         | read 95 ms (0.5 us/op, stall 0 ms)
+                         | raw readFileSync 147 ms (7.3 us/op, stall 0 ms)
+                         seed 2177 ms (stall 868 ms) writes 95 ms (stall 32 ms) flush 22 ms (stall 0 ms)
+[6/6] download writes   : 500 slow sinks x 512 KB (16 chunks, sink 2 ms/chunk)
+                         | writeWithBackpressure peak-queued 31.2 MB rss +42 MB wall 433 ms
+                         | raw stream.write peak-queued 250.0 MB rss +105 MB wall 416 ms
 VERDICT: no blocking I/O detected
 ```
+
+Phase 5 compares the memory-first entity lookup against the raw
+`readFileSync` path the old code used (~15x cheaper per lookup, no filesystem
+traffic). Phase 6 models a consumer slower than the network (the reason to
+apply backpressure): without `writeWithBackpressure` all 500 writers queue
+their entire file (250 MB) in userland, with it the queue stays at ~31 MB —
+bounded by the high-water mark instead of the download size.
+
+The `seed` measurement in phase 5 is session/entity *creation* (constructors
+plus `processEntities` row building for 20 000 entities); it is one-off setup
+work, not request-path I/O.
 
 Exit code is `1` when a phase sees a single stall ≥ 1.5 s or ≥ 3 s of
 accumulated stalls — the shapes the original blocking I/O produced — so the
