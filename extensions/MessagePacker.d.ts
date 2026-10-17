@@ -1,0 +1,19 @@
+import type { MTProtoState } from "../network/MTProtoState";
+import type { RequestState } from "../network/RequestState";
+export declare class MessagePacker {
+    private _state;
+    _pendingStates: RequestState[];
+    private _queue;
+    private _ready;
+    private setReady;
+    private _log;
+    constructor(state: MTProtoState, logger: any);
+    values(): any[];
+    get length(): number;
+    append(state?: RequestState, setReady?: boolean, atStart?: boolean): void;
+    prepend(states: RequestState[]): void;
+    extend(states: RequestState[]): void;
+    clear(): void;
+    wait(): Promise<void>;
+    get(): Promise<import("../network/packing").PackedBatch | null | undefined>;
+}

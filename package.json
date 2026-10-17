@@ -1,0 +1,105 @@
+{
+  "name": "teleproto",
+  "version": "1.230.1-seeker.1",
+  "description": "Modern Telegram MTProto client for Node.js, written in TypeScript",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./client": {
+      "types": "./client/index.d.ts",
+      "default": "./client/index.js"
+    },
+    "./client/updates": {
+      "types": "./client/updates/index.d.ts",
+      "default": "./client/updates/index.js"
+    },
+    "./errors": {
+      "types": "./errors/index.d.ts",
+      "default": "./errors/index.js"
+    },
+    "./events": {
+      "types": "./events/index.d.ts",
+      "default": "./events/index.js"
+    },
+    "./extensions": {
+      "types": "./extensions/index.d.ts",
+      "default": "./extensions/index.js"
+    },
+    "./network": {
+      "types": "./network/index.d.ts",
+      "default": "./network/index.js"
+    },
+    "./network/connection": {
+      "types": "./network/connection/index.d.ts",
+      "default": "./network/connection/index.js"
+    },
+    "./sessions": {
+      "types": "./sessions/index.d.ts",
+      "default": "./sessions/index.js"
+    },
+    "./tl": {
+      "types": "./tl/index.d.ts",
+      "default": "./tl/index.js"
+    },
+    "./tl/core": {
+      "types": "./tl/core/index.d.ts",
+      "default": "./tl/core/index.js"
+    },
+    "./tl/custom": {
+      "types": "./tl/custom/index.d.ts",
+      "default": "./tl/custom/index.js"
+    },
+    "./package.json": "./package.json",
+    "./README.md": "./README.md",
+    "./LICENSE": "./LICENSE",
+    "./*.js": "./*.js",
+    "./*.json": "./*.json",
+    "./*.ts": "./*.ts",
+    "./*": {
+      "types": "./*.d.ts",
+      "default": "./*.js"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanyok12345/teleproto.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sanyok12345/teleproto/issues"
+  },
+  "keywords": [
+    "telegram",
+    "telegram-client",
+    "telegram-api",
+    "mtproto",
+    "userbot",
+    "typescript",
+    "nodejs",
+    "gramjs",
+    "gramjs-alternative",
+    "api",
+    "client",
+    "bot",
+    "library"
+  ],
+  "homepage": "https://docs.teleproto.dev",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/sanyok12345"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "big-integer": "^1.6.48",
+    "cifrante": "0.6.0",
+    "mime": "^3.0.0",
+    "socks": "^2.6.2",
+    "store2": "^2.13.0"
+  }
+}
