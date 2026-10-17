@@ -1,5 +1,5 @@
-import { mkdirSync, readdirSync, readFileSync, statSync } from "fs";
-import { open, rename, rm } from "fs/promises";
+import { readdirSync, readFileSync, statSync } from "fs";
+import { mkdir, open, rename, rm } from "fs/promises";
 import { join } from "path";
 
 const EMPTY_KEY_FILENAME = "---.EMPTY_STRING.---";
@@ -28,6 +28,8 @@ function encodeKey(key: string): string {
 export class FileStore {
     private readonly directory: string;
     private readonly keys: string[] = [];
+    private readonly pendingAdded: string[] = [];
+    private keysScanned = false;
     private readonly pending = new Map<string, string | undefined>();
     private chain: Promise<void> = Promise.resolve();
     private flushQueued = false;
@@ -36,7 +38,6 @@ export class FileStore {
 
     constructor(directory: string) {
         this.directory = directory;
-        let exists = true;
         try {
             if (!statSync(directory).isDirectory()) {
                 throw new Error(
@@ -47,28 +48,21 @@ export class FileStore {
             if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
                 throw error;
             }
-            exists = false;
-        }
-        if (!exists) {
-            mkdirSync(directory, { recursive: true });
-        }
-        for (const name of readdirSync(this.directory)) {
-            if (name.endsWith(".tmp")) {
-                continue;
-            }
-            this.keys.push(decodeURIComponent(name));
         }
     }
 
     get length(): number {
+        this.ensureKeys();
         return this.keys.length;
     }
 
     key(index: number): string | null {
+        this.ensureKeys();
         return this.keys[index] ?? null;
     }
 
     has(key: string): boolean {
+        this.ensureKeys();
         return this.keys.includes(key);
     }
 
@@ -87,17 +81,23 @@ export class FileStore {
     }
 
     setItem(key: string, value: string): void {
-        if (!this.keys.includes(key)) {
-            this.keys.push(key);
+        if (!this.hasKeyRecord(key)) {
+            this.pendingAdded.push(key);
         }
         this.pending.set(key, `${value}`);
         this.scheduleFlush();
     }
 
     removeItem(key: string): void {
-        const index = this.keys.indexOf(key);
-        if (index >= 0) {
-            this.keys.splice(index, 1);
+        const pendingIndex = this.pendingAdded.indexOf(key);
+        if (pendingIndex >= 0) {
+            this.pendingAdded.splice(pendingIndex, 1);
+        }
+        if (this.keysScanned) {
+            const index = this.keys.indexOf(key);
+            if (index >= 0) {
+                this.keys.splice(index, 1);
+            }
         }
         this.pending.set(key, undefined);
         this.scheduleFlush();
@@ -105,6 +105,7 @@ export class FileStore {
 
     clear(): void {
         this.keys.length = 0;
+        this.pendingAdded.length = 0;
         this.pending.clear();
         let names: string[] = [];
         try {
@@ -138,6 +139,45 @@ export class FileStore {
         }
     }
 
+    private hasKeyRecord(key: string): boolean {
+        if (!this.keysScanned) {
+            return this.pendingAdded.includes(key);
+        }
+        return this.keys.includes(key);
+    }
+
+    /**
+     * Loads the on-disk key index on first use. Sessions that only read and
+     * write known keys (the normal case) never pay for the directory scan, so
+     * opening hundreds of sessions at boot stays cheap.
+     */
+    private ensureKeys(): void {
+        if (this.keysScanned) {
+            return;
+        }
+        this.keysScanned = true;
+        let names: string[] = [];
+        try {
+            names = readdirSync(this.directory);
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+                throw error;
+            }
+        }
+        for (const name of names) {
+            if (name.endsWith(".tmp")) {
+                continue;
+            }
+            this.keys.push(decodeURIComponent(name));
+        }
+        for (const key of this.pendingAdded) {
+            if (!this.keys.includes(key)) {
+                this.keys.push(key);
+            }
+        }
+        this.pendingAdded.length = 0;
+    }
+
     private scheduleFlush(): void {
         if (this.flushQueued) {
             return;
@@ -145,6 +185,10 @@ export class FileStore {
         this.flushQueued = true;
         this.chain = this.chain.then(async () => {
             this.flushQueued = false;
+            if (this.pending.size === 0) {
+                return;
+            }
+            await mkdir(this.directory, { recursive: true });
             while (this.pending.size > 0) {
                 const batch = Array.from(this.pending.entries());
                 this.pending.clear();

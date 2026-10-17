@@ -16,7 +16,8 @@
  */
 import bigInt from "big-integer";
 import { randomBytes } from "crypto";
-import { mkdtempSync, rmSync } from "fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from "fs";
+import { Writable } from "stream";
 import { tmpdir } from "os";
 import { join } from "path";
 import { monitorEventLoopDelay, performance } from "perf_hooks";
@@ -29,6 +30,7 @@ import { StringSession } from "../teleproto/sessions/StringSession";
 import { StoreSession } from "../teleproto/sessions/StoreSession";
 import { Api } from "../teleproto/tl";
 import { GZIPPacked } from "../teleproto/tl/core/GZIPPacked";
+import { writeWithBackpressure } from "../teleproto/network/OrderedWriter";
 import { Logger, LogLevel } from "../teleproto/extensions/Logger";
 
 const SIM_API_ID = 2040;
@@ -242,7 +244,7 @@ async function phaseConnect(
     return {
         blocking: isBlocking(report),
         line:
-            `[1/4] connect          : ${connected}/${clients.length} clients in ${elapsed.toFixed(1)} ms` +
+            `[1/6] connect          : ${connected}/${clients.length} clients in ${elapsed.toFixed(1)} ms` +
             ` | loop p99=${report.p99.toFixed(1)} ms stall-max=${report.sampleMax.toFixed(1)} ms stalls>=${STALL_MS}ms=${report.stallCount}`,
     };
 }
@@ -283,7 +285,7 @@ async function phasePing(
     return {
         blocking: isBlocking(report),
         line:
-            `[2/4] ping storm       : ${pings} encrypted pings, ${(sentBytes / 1024).toFixed(1)} KB in ${seconds} s` +
+            `[2/6] ping storm       : ${pings} encrypted pings, ${(sentBytes / 1024).toFixed(1)} KB in ${seconds} s` +
             ` | loop p99=${report.p99.toFixed(1)} ms stall-max=${report.sampleMax.toFixed(1)} ms stalls>=${STALL_MS}ms=${report.stallCount}`,
     };
 }
@@ -327,7 +329,7 @@ async function phaseGzip(): Promise<{ line: string; blocking: boolean }> {
     return {
         blocking: isBlocking(asyncReport),
         line:
-            `[3/4] gzip ${(payload.length / (1024 * 1024)).toFixed(1)} MB x20 : ` +
+            `[3/6] gzip ${(payload.length / (1024 * 1024)).toFixed(1)} MB x20 : ` +
             `unzipSync(legacy) wall=${syncWall.toFixed(1)} ms stall=${syncReport.stallMs.toFixed(0)} ms` +
             ` | GZIPPacked.ungzip(patched) wall=${asyncWall.toFixed(1)} ms stall=${asyncReport.stallMs.toFixed(0)} ms`,
     };
@@ -379,9 +381,208 @@ async function phaseStoreSessions(
         blocking:
             isBlocking(writeReport) || isBlocking(loadReport),
         line:
-            `[4/4] StoreSession x${count} : write ${writeWall.toFixed(0)} ms (stall ${writeReport.stallMs.toFixed(0)} ms)` +
+            `[4/6] StoreSession x${count} : write ${writeWall.toFixed(0)} ms (stall ${writeReport.stallMs.toFixed(0)} ms)` +
             ` load ${loadWall.toFixed(0)} ms (stall ${loadReport.stallMs.toFixed(0)} ms)` +
             ` delete ${deleteWall.toFixed(0)} ms (stall ${deleteReport.stallMs.toFixed(0)} ms)`,
+    };
+}
+
+async function phaseSessionStorm(
+    sessions: number,
+    rows: number,
+    lookups: number
+): Promise<{ line: string; blocking: boolean }> {
+    const root = mkdtempSync(join(tmpdir(), "teleproto-storm-"));
+    const stores: StoreSession[] = [];
+    const idsBySession: number[][] = [];
+    const filesBySession: string[][] = [];
+
+    const seedMonitor = new LoopMonitor();
+    seedMonitor.start();
+    const seedStarted = performance.now();
+    for (let s = 0; s < sessions; s += 1) {
+        const directory = join(root, `storm${s}`);
+        const store = new StoreSession(directory);
+        const users: Api.User[] = [];
+        const ids: number[] = [];
+        for (let r = 0; r < rows; r += 1) {
+            const id = s * rows + r + 1;
+            ids.push(id);
+            users.push(
+                new Api.User({
+                    id: bigInt(id),
+                    accessHash: bigInt(id * 7919 + 13),
+                    firstName: `user${id}`,
+                    lastName: "storm",
+                    username: `storm${id}`,
+                })
+            );
+        }
+        store.processEntities(users);
+        stores.push(store);
+        idsBySession.push(ids);
+    }
+    await Promise.all(stores.map((store) => store.flush()));
+    for (let s = 0; s < sessions; s += 1) {
+        const directory = join(root, `storm${s}`);
+        filesBySession.push(
+            readdirSync(directory)
+                .filter((name) => /:\d+$/.test(decodeURIComponent(name)))
+                .map((name) => join(directory, name))
+        );
+    }
+    const seedWall = performance.now() - seedStarted;
+    const seedReport = await seedMonitor.stop();
+
+    const readMonitor = new LoopMonitor();
+    readMonitor.start();
+    const readStarted = performance.now();
+    let memoryHits = 0;
+    for (let i = 0; i < lookups; i += 1) {
+        const s = i % sessions;
+        const ids = idsBySession[s]!;
+        const id = ids[(i * 7) % ids.length]!;
+        const row = stores[s]!.getEntityRowsById(bigInt(id));
+        if (row) memoryHits += 1;
+        if (i % 2000 === 1999) {
+            await new Promise<void>((resolve) => setImmediate(resolve));
+        }
+    }
+    const readWall = performance.now() - readStarted;
+    const readReport = await readMonitor.stop();
+
+    const legacyLookups = Math.max(1, Math.floor(lookups / 10));
+    const legacyMonitor = new LoopMonitor();
+    legacyMonitor.start();
+    const legacyStarted = performance.now();
+    for (let i = 0; i < legacyLookups; i += 1) {
+        const s = i % sessions;
+        const files = filesBySession[s]!;
+        JSON.parse(
+            readFileSync(files[(i * 11) % files.length]!, "utf8")
+        );
+        if (i % 2000 === 1999) {
+            await new Promise<void>((resolve) => setImmediate(resolve));
+        }
+    }
+    const legacyWall = performance.now() - legacyStarted;
+    const legacyReport = await legacyMonitor.stop();
+
+    const writeMonitor = new LoopMonitor();
+    writeMonitor.start();
+    const writeStarted = performance.now();
+    const updates = sessions * 4;
+    for (let i = 0; i < updates; i += 1) {
+        const s = i % sessions;
+        stores[s]!.processEntities([
+            new Api.User({
+                id: bigInt(s * rows + 1),
+                accessHash: bigInt((s * rows + 1) * 7919 + 13),
+                firstName: `user${s * rows + 1}`,
+                lastName: "storm",
+                username: `storm-updated-${i}`,
+            }),
+        ]);
+        if (i % 500 === 499) {
+            await new Promise<void>((resolve) => setImmediate(resolve));
+        }
+    }
+    const writeWall = performance.now() - writeStarted;
+    const writeReport = await writeMonitor.stop();
+
+    const flushMonitor = new LoopMonitor();
+    flushMonitor.start();
+    const flushStarted = performance.now();
+    await Promise.all(stores.map((store) => store.flush()));
+    const flushWall = performance.now() - flushStarted;
+    const flushReport = await flushMonitor.stop();
+
+    for (const store of stores) store.delete();
+    await Promise.all(stores.map((store) => store.flush())).catch(
+        () => undefined
+    );
+    rmSync(root, { recursive: true, force: true });
+
+    const readPerOpUs =
+        lookups > 0 ? (readWall * 1000) / lookups : 0;
+    const legacyPerOpUs =
+        legacyLookups > 0 ? (legacyWall * 1000) / legacyLookups : 0;
+    return {
+        blocking: isBlocking(readReport) || isBlocking(legacyReport),
+        line:
+            `[5/6] session storm     : ${sessions} sessions x ${rows} rows, ${lookups} reads (${memoryHits} hits)` +
+            ` | read ${readWall.toFixed(0)} ms (${readPerOpUs.toFixed(1)} us/op, stall ${readReport.stallMs.toFixed(0)} ms)` +
+            ` | raw readFileSync ${legacyWall.toFixed(0)} ms (${legacyPerOpUs.toFixed(1)} us/op, stall ${legacyReport.stallMs.toFixed(0)} ms)` +
+            `\n                         seed ${seedWall.toFixed(0)} ms (stall ${seedReport.stallMs.toFixed(0)} ms)` +
+            ` writes ${writeWall.toFixed(0)} ms (stall ${writeReport.stallMs.toFixed(0)} ms)` +
+            ` flush ${flushWall.toFixed(0)} ms (stall ${flushReport.stallMs.toFixed(0)} ms)`,
+    };
+}
+
+async function phaseDownloadWrites(
+    writers: number,
+    fileKb: number
+): Promise<{ line: string; blocking: boolean }> {
+    const chunkKb = 32;
+    const chunksPerFile = Math.max(1, Math.ceil(fileKb / chunkKb));
+    const sinkDelayMs = 2;
+
+    const makeSink = () =>
+        new Writable({
+            write(_data, _encoding, callback) {
+                setTimeout(callback, sinkDelayMs);
+            },
+        });
+
+    const runPass = async (patched: boolean) => {
+        const rssBefore = process.memoryUsage().rss;
+        const monitor = new LoopMonitor();
+        monitor.start();
+        const started = performance.now();
+        const sinks = Array.from({ length: writers }, makeSink);
+        let peakQueued = 0;
+        const sampleQueued = () => {
+            let total = 0;
+            for (const sink of sinks) total += sink.writableLength;
+            if (total > peakQueued) peakQueued = total;
+        };
+        await Promise.all(
+            sinks.map(async (sink) => {
+                for (let c = 0; c < chunksPerFile; c += 1) {
+                    const chunk = Buffer.alloc(chunkKb * 1024, c % 251);
+                    if (patched) {
+                        await writeWithBackpressure(sink, chunk);
+                    } else {
+                        sink.write(chunk);
+                    }
+                    sampleQueued();
+                }
+                await new Promise<void>((resolve, reject) => {
+                    sink.once("error", reject);
+                    sink.end(() => resolve());
+                });
+            })
+        );
+        const wall = performance.now() - started;
+        const report = await monitor.stop();
+        const rssAfter = process.memoryUsage().rss;
+        return {
+            wall,
+            report,
+            peakQueued,
+            rssDelta: (rssAfter - rssBefore) / (1024 * 1024),
+        };
+    };
+
+    const patched = await runPass(true);
+    const legacy = await runPass(false);
+
+    return {
+        blocking: isBlocking(patched.report),
+        line:
+            `[6/6] download writes   : ${writers} slow sinks x ${fileKb} KB (${chunksPerFile} chunks, sink ${sinkDelayMs} ms/chunk)` +
+            ` | writeWithBackpressure peak-queued ${(patched.peakQueued / (1024 * 1024)).toFixed(1)} MB rss ${patched.rssDelta.toFixed(0)} MB wall ${patched.wall.toFixed(0)} ms` +
+            ` | raw stream.write peak-queued ${(legacy.peakQueued / (1024 * 1024)).toFixed(1)} MB rss ${legacy.rssDelta.toFixed(0)} MB wall ${legacy.wall.toFixed(0)} ms`,
     };
 }
 
@@ -434,6 +635,18 @@ async function main(): Promise<void> {
     const store = await phaseStoreSessions(options.sessions);
     blocking = blocking || store.blocking;
     lines.push(store.line);
+
+    const storm = await phaseSessionStorm(
+        options.sessions,
+        40,
+        options.sessions * 400
+    );
+    blocking = blocking || storm.blocking;
+    lines.push(storm.line);
+
+    const downloadWrites = await phaseDownloadWrites(options.sessions, 512);
+    blocking = blocking || downloadWrites.blocking;
+    lines.push(downloadWrites.line);
 
     const teardownStarted = performance.now();
     await Promise.race([

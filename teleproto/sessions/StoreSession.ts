@@ -27,6 +27,7 @@ export class StoreSession extends MemorySession {
     private readonly sessionName: string;
     private readonly fileStore: FileStore;
     private store: StoreBase;
+    private entityRowsLoaded = false;
 
     constructor(sessionName: string, divider = ":") {
         super();
@@ -158,6 +159,7 @@ export class StoreSession extends MemorySession {
             return;
         }
         for (const row of rows) {
+            this._entities.set(row[0].toString(), row);
             this.store.set(this.sessionName + row[0], row);
         }
     }
@@ -166,10 +168,20 @@ export class StoreSession extends MemorySession {
         id: string | bigInt.BigInteger,
         exact: boolean = true
     ): any {
-        const row = this.store.get(this.sessionName + id.toString());
-        if (row || exact) return row;
-        return this.store.get(this.sessionName + "-" + id)
+        const key = id.toString();
+        const cached = this._entities.get(key);
+        if (cached) return cached;
+        this.ensureEntityRows();
+        const fromDisk = this._entities.get(key)
+            ?? this.store.get(this.sessionName + key);
+        if (fromDisk || exact) {
+            if (fromDisk) this._entities.set(key, fromDisk);
+            return fromDisk;
+        }
+        const fallback = this.store.get(this.sessionName + "-" + id)
             ?? this.store.get(this.sessionName + "-100" + id);
+        if (fallback) this._entities.set(key, fallback);
+        return fallback;
     }
 
     getEntityRowsByPhone(phone: string) {
@@ -184,11 +196,28 @@ export class StoreSession extends MemorySession {
         return this.findEntityRow((row) => row[4] === name);
     }
 
+    private ensureEntityRows(): void {
+        if (this.entityRowsLoaded) return;
+        this.entityRowsLoaded = true;
+        this.store.each((key, row) => {
+            if (Array.isArray(row) && row.length >= 5 &&
+                key === this.sessionName + row[0]) {
+                this._entities.set(row[0].toString(), row);
+            }
+        });
+    }
+
     private findEntityRow(matches: (row: string[]) => boolean): string[] | undefined {
+        for (const row of this._entities.values()) {
+            if (Array.isArray(row) && row.length >= 5 && matches(row)) {
+                return row;
+            }
+        }
         let result: string[] | undefined;
         this.store.each((key, row) => {
             if (Array.isArray(row) && row.length >= 5 &&
                 key === this.sessionName + row[0] && matches(row)) {
+                this._entities.set(row[0].toString(), row);
                 result = row;
                 return false;
             }

@@ -11,6 +11,7 @@ import bigInt from "big-integer";
 import {
     BoundedSemaphore,
     OrderedWriter,
+    writeWithBackpressure,
 } from "../network/OrderedWriter";
 import { MediaAbortError } from "../network/MediaScheduler";
 import { sha256 } from "cifrante";
@@ -278,7 +279,7 @@ async function streamSequential(
             if (hashChecker) {
                 await hashChecker.verify(idx * partSize, data);
             }
-            await writer.write(data);
+            await writeWithBackpressure(writer, data);
             await onBytes(data.length);
         }
         if (data.length < partSize) return;
@@ -484,14 +485,14 @@ export async function _downloadDocument(
     }
     let size;
     if (thumb == undefined) {
-        outputFile = getProperFilename(
+        outputFile = await getProperFilename(
             outputFile,
             "document",
             "." + (utils.getExtension(doc) || "bin"),
             date
         );
     } else {
-        outputFile = getProperFilename(outputFile, "photo", ".jpg", date);
+        outputFile = await getProperFilename(outputFile, "photo", ".jpg", date);
         size = getThumb(doc.thumbs || [], thumb);
         if (
             size instanceof Api.PhotoCachedSize ||
@@ -617,7 +618,7 @@ export async function _downloadCachedPhotoSize(
     }
     const writer = getWriter(outputFile);
     try {
-        await writer.write(data);
+        await writeWithBackpressure(writer, data);
         await closeWriter(writer);
     } catch (err) {
         await closeWriter(writer).catch(() => {});
@@ -626,19 +627,23 @@ export async function _downloadCachedPhotoSize(
     return returnWriterValue(writer);
 }
 
-function getProperFilename(
+async function getProperFilename(
     file: OutFile | undefined,
     fileType: string,
     extension: string,
     date: number
-) {
+): Promise<OutFile | undefined> {
     if (!file || typeof file != "string") {
         return file;
     }
 
-    if (fs.existsSync(file) && fs.lstatSync(file).isDirectory()) {
-        let fullName = fileType + date + extension;
-        return path.join(file, fullName);
+    try {
+        if ((await fs.promises.lstat(file)).isDirectory()) {
+            const fullName = fileType + date + extension;
+            return path.join(file, fullName);
+        }
+    } catch {
+        return file;
     }
     return file;
 }
@@ -671,7 +676,7 @@ export async function _downloadPhoto(
         date = Date.now();
     }
 
-    file = getProperFilename(file, "photo", ".jpg", date);
+    file = await getProperFilename(file, "photo", ".jpg", date);
     if (
         size instanceof Api.PhotoCachedSize ||
         size instanceof Api.PhotoStrippedSize

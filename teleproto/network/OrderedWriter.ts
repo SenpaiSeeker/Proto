@@ -2,6 +2,50 @@ import { BinaryWriter } from "../extensions";
 
 type WriterLike = BinaryWriter | { write: Function; close?: Function };
 
+interface BackpressureWriter {
+    write(data: Buffer): unknown;
+    once?(event: string, listener: (...args: any[]) => void): unknown;
+    removeListener?(event: string, listener: (...args: any[]) => void): unknown;
+}
+
+/**
+ * Writes one chunk and, when the target is a stream whose buffer is full,
+ * waits for `drain` before returning. Without this the download loops push
+ * every part into the stream buffer as fast as the network delivers them,
+ * which is unbounded memory with hundreds of concurrent downloads.
+ */
+export async function writeWithBackpressure(
+    writer: WriterLike,
+    data: Buffer
+): Promise<void> {
+    const stream = writer as BackpressureWriter;
+    const accepted = stream.write(data);
+    if (
+        accepted !== false ||
+        typeof stream.once !== "function" ||
+        typeof stream.removeListener !== "function"
+    ) {
+        return;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+        const onDrain = () => {
+            cleanup();
+            resolve();
+        };
+        const onError = (error: Error) => {
+            cleanup();
+            reject(error);
+        };
+        const cleanup = () => {
+            stream.removeListener!("drain", onDrain);
+            stream.removeListener!("error", onError);
+        };
+        stream.once!("drain", onDrain);
+        stream.once!("error", onError);
+    });
+}
+
 export type OrderedWriterAfter = (bytes: number) => Promise<void> | void;
 
 export class OrderedWriter {
@@ -29,7 +73,7 @@ export class OrderedWriter {
             // response (e.g. server-side EOF that's earlier than our advertised
             // size) would freeze the drain and orphan every later part.
             if (buf.length > 0) {
-                await this._writer.write(buf);
+                await writeWithBackpressure(this._writer, buf);
             }
             this.nextIdx++;
             if (after && buf.length > 0) {
