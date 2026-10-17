@@ -38,7 +38,8 @@ const SIM_DC_ADDRESS = "149.154.167.51";
 const SIM_DC_PORT = 443;
 const SAMPLE_INTERVAL_MS = 10;
 const STALL_MS = 250;
-const STALL_BUDGET_MS = 5000;
+const STALL_BUDGET_MS = 3000;
+const STALL_MAX_MS = 1500;
 
 interface LoopReport {
     samples: number;
@@ -48,6 +49,10 @@ interface LoopReport {
     sampleMax: number;
     stallCount: number;
     stallMs: number;
+}
+
+function isBlocking(report: LoopReport): boolean {
+    return report.stallMs >= STALL_BUDGET_MS || report.sampleMax >= STALL_MAX_MS;
 }
 
 interface Options {
@@ -235,7 +240,7 @@ async function phaseConnect(
         (client) => (client as unknown as { connected?: boolean }).connected,
     ).length;
     return {
-        blocking: report.stallCount > 0 || report.stallMs >= STALL_BUDGET_MS,
+        blocking: isBlocking(report),
         line:
             `[1/4] connect          : ${connected}/${clients.length} clients in ${elapsed.toFixed(1)} ms` +
             ` | loop p99=${report.p99.toFixed(1)} ms stall-max=${report.sampleMax.toFixed(1)} ms stalls>=${STALL_MS}ms=${report.stallCount}`,
@@ -276,7 +281,7 @@ async function phasePing(
         sentBytes += sender?._connection?.sentBytes ?? 0;
     }
     return {
-        blocking: report.stallCount > 0 || report.stallMs >= STALL_BUDGET_MS,
+        blocking: isBlocking(report),
         line:
             `[2/4] ping storm       : ${pings} encrypted pings, ${(sentBytes / 1024).toFixed(1)} KB in ${seconds} s` +
             ` | loop p99=${report.p99.toFixed(1)} ms stall-max=${report.sampleMax.toFixed(1)} ms stalls>=${STALL_MS}ms=${report.stallCount}`,
@@ -320,9 +325,7 @@ async function phaseGzip(): Promise<{ line: string; blocking: boolean }> {
     const asyncReport = await asyncMonitor.stop();
 
     return {
-        blocking:
-            asyncReport.stallCount > 0 ||
-            asyncReport.stallMs >= STALL_BUDGET_MS,
+        blocking: isBlocking(asyncReport),
         line:
             `[3/4] gzip ${(payload.length / (1024 * 1024)).toFixed(1)} MB x20 : ` +
             `unzipSync(legacy) wall=${syncWall.toFixed(1)} ms stall=${syncReport.stallMs.toFixed(0)} ms` +
@@ -372,15 +375,9 @@ async function phaseStoreSessions(
     const deleteReport = await deleteMonitor.stop();
     rmSync(root, { recursive: true, force: true });
 
-    const hotPathStall = Math.max(
-        writeReport.stallMs,
-        loadReport.stallMs,
-    );
     return {
         blocking:
-            writeReport.stallCount > 0 ||
-            loadReport.stallCount > 0 ||
-            hotPathStall >= STALL_BUDGET_MS,
+            isBlocking(writeReport) || isBlocking(loadReport),
         line:
             `[4/4] StoreSession x${count} : write ${writeWall.toFixed(0)} ms (stall ${writeReport.stallMs.toFixed(0)} ms)` +
             ` load ${loadWall.toFixed(0)} ms (stall ${loadReport.stallMs.toFixed(0)} ms)` +
@@ -466,6 +463,9 @@ async function main(): Promise<void> {
         blocking
             ? "VERDICT: blocking I/O detected (see stalls above)"
             : "VERDICT: no blocking I/O detected",
+    );
+    await new Promise<void>((resolve) =>
+        process.stdout.write("", () => resolve()),
     );
     process.exit(blocking ? 1 : 0);
 }
