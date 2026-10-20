@@ -116,6 +116,14 @@ function resolvePartSize(client, partSizeKb) {
     }
     return size;
 }
+function allocateBuffer(size) {
+    try {
+        return Buffer.alloc(size);
+    }
+    catch {
+        return undefined;
+    }
+}
 const HASH_BLOCK = 128 * 1024;
 class FileHashChecker {
     constructor(client, location) {
@@ -170,7 +178,11 @@ async function downloadFile(client, inputLocation, { outputFile = undefined, par
     const totalBytes = totalSize ? totalSize.toJSNumber() : 0;
     const partSize = resolvePartSize(client, partSizeKb);
     const route = { dcId: targetDc };
-    const writer = getWriter(outputFile);
+    const memory = outputFile === undefined && totalBytes > 0
+        ? allocateBuffer(totalBytes)
+        : undefined;
+    const writer = memory ? undefined : getWriter(outputFile);
+    let written = 0;
     const abort = new AbortController();
     let timeoutTimer;
     let unforward;
@@ -204,14 +216,21 @@ async function downloadFile(client, inputLocation, { outputFile = undefined, par
         if (totalBytes <= 0) {
             await streamSequential(client, location, route, partSize, writer, abort.signal, reportProgress, hashChecker);
         }
+        else if (memory) {
+            written = await streamIntoBuffer(client, location, route, partSize, totalBytes, memory, abort.signal, reportProgress, hashChecker, dcId === undefined && info.dcId === undefined);
+        }
         else {
             await streamParallel(client, location, route, partSize, totalBytes, writer, abort.signal, reportProgress, hashChecker, dcId === undefined && info.dcId === undefined);
         }
-        await closeWriter(writer);
+        if (writer)
+            await closeWriter(writer);
+        if (memory)
+            return memory.subarray(0, written);
         return returnWriterValue(writer);
     }
     catch (err) {
-        await closeWriter(writer).catch(() => { });
+        if (writer)
+            await closeWriter(writer).catch(() => { });
         throw err;
     }
     finally {
@@ -294,6 +313,61 @@ async function streamParallel(client, location, route, partSize, totalBytes, wri
     if (firstError && !(firstError instanceof MediaScheduler_1.MediaAbortError)) {
         throw firstError;
     }
+}
+async function streamIntoBuffer(client, location, route, partSize, totalBytes, out, signal, onBytes, hashChecker, probeRoute = false) {
+    const totalParts = Math.max(1, Math.ceil(totalBytes / partSize));
+    let firstPart;
+    if (probeRoute && totalParts > 1) {
+        firstPart = await client._media.getFile(route.dcId, location, big_integer_1.default.zero, partSize, signal, (dc) => (route.dcId = dc));
+    }
+    const dl = client._media.opts.download;
+    const inflight = new OrderedWriter_1.BoundedSemaphore(Math.max(1, dl.sessions * dl.inFlight));
+    let firstError;
+    let written = 0;
+    const tasks = [];
+    for (let i = 0; i < totalParts; i++) {
+        if (signal.aborted || firstError)
+            break;
+        await inflight.acquire();
+        if (signal.aborted || firstError) {
+            inflight.release();
+            break;
+        }
+        const idx = i;
+        const offset = (0, big_integer_1.default)(idx).multiply(partSize);
+        tasks.push((async () => {
+            try {
+                const data = idx === 0 && firstPart !== undefined
+                    ? firstPart
+                    : await client._media.getFile(route.dcId, location, offset, partSize, signal, (dc) => (route.dcId = dc));
+                if (!firstError) {
+                    if (hashChecker) {
+                        await hashChecker.verify(idx * partSize, data);
+                    }
+                    await onBytes(data.length);
+                    const at = idx * partSize;
+                    const end = Math.min(out.length, at + data.length);
+                    if (end > at) {
+                        data.copy(out, at, 0, end - at);
+                    }
+                    if (end > written)
+                        written = end;
+                }
+            }
+            catch (err) {
+                if (!firstError)
+                    firstError = err;
+            }
+            finally {
+                inflight.release();
+            }
+        })());
+    }
+    await Promise.all(tasks);
+    if (firstError && !(firstError instanceof MediaScheduler_1.MediaAbortError)) {
+        throw firstError;
+    }
+    return written;
 }
 /** @hidden */
 async function downloadMedia(client, messageOrMedia, outputFile, thumb, progressCallback, extra) {

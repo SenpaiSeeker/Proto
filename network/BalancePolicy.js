@@ -4,13 +4,13 @@ exports.BalancePolicy = exports.UPLOAD_BALANCE = exports.DOWNLOAD_BALANCE = void
 exports.normalizeBalanceOptions = normalizeBalanceOptions;
 exports.DOWNLOAD_BALANCE = {
     partSize: 512 * 1024,
-    sessions: 4,
-    inFlight: 4,
+    sessions: 8,
+    inFlight: 8,
 };
 exports.UPLOAD_BALANCE = {
     partSize: 512 * 1024,
     sessions: 8,
-    inFlight: 2,
+    inFlight: 8,
 };
 function normalizeBalanceOptions(opts, base) {
     const partSize = opts.partSize && opts.partSize > 0 ? opts.partSize : base.partSize;

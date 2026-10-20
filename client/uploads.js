@@ -82,17 +82,35 @@ class CustomBuffer {
     async slice(begin, end) {
         const { buffer, filePath } = this.options;
         if (buffer) {
-            return buffer.slice(begin, end);
+            return buffer.subarray(begin, end);
         }
         else if (filePath) {
-            const buffSize = end - begin;
-            const buff = Buffer.alloc(buffSize);
-            const fHandle = await fs_1.promises.open(filePath, "r");
-            await fHandle.read(buff, 0, buffSize, begin);
-            await fHandle.close();
-            return Buffer.from(buff);
+            const buffSize = Math.max(0, end - begin);
+            const buff = Buffer.allocUnsafe(buffSize);
+            const pending = (this._handle ??= fs_1.promises.open(filePath, "r"));
+            let fHandle;
+            try {
+                fHandle = await pending;
+            }
+            catch (err) {
+                if (this._handle === pending)
+                    this._handle = undefined;
+                throw err;
+            }
+            const { bytesRead } = await fHandle.read(buff, 0, buffSize, begin);
+            return bytesRead === buffSize
+                ? buff
+                : buff.subarray(0, bytesRead);
         }
         return Buffer.alloc(0);
+    }
+    async close() {
+        const handle = this._handle;
+        this._handle = undefined;
+        if (!handle)
+            return;
+        const opened = await handle.catch(() => undefined);
+        await opened?.close().catch(() => undefined);
     }
 }
 const KB_TO_BYTES = 1024;
@@ -104,7 +122,10 @@ async function getFileBuffer(file, fileSize, maxBufferSize) {
         options.filePath = file.path;
     }
     else {
-        options.buffer = Buffer.from(await fileToBuffer(file));
+        const loaded = await fileToBuffer(file);
+        options.buffer = Buffer.isBuffer(loaded)
+            ? loaded
+            : Buffer.from(loaded);
     }
     return new CustomBuffer(options);
 }
@@ -188,6 +209,7 @@ async function uploadFile(client, fileParams) {
         })());
     }
     await Promise.all(tasks);
+    await buffer.close();
     if (firstError) {
         throw firstError;
     }
