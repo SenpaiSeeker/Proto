@@ -13,14 +13,14 @@ export interface BalancePolicyOptions {
 
 export const DOWNLOAD_BALANCE: BalancePolicyOptions = {
     partSize: 512 * 1024,
-    sessions: 4,
-    inFlight: 4,
+    sessions: 8,
+    inFlight: 8,
 };
 
 export const UPLOAD_BALANCE: BalancePolicyOptions = {
     partSize: 512 * 1024,
     sessions: 8,
-    inFlight: 2,
+    inFlight: 8,
 };
 
 export function normalizeBalanceOptions(

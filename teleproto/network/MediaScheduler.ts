@@ -24,10 +24,9 @@ const ONE_MB = 1024 * 1024;
 const MIN_CHUNK = 4096;
 const LIMITED_UPLOAD_DCS = new Set([2, 4]);
 const LIMITED_UPLOAD_SESSIONS = 4;
-const SPACING_START_MS = 50;
-const SPACING_MIN_MS = 3;
-const SPACING_DECAY = 0.8;
-const SPACING_IDLE_MS = 1000;
+const PACE_REQUESTS_PER_SEC = 4096;
+const PACE_MIN_WAIT_MS = 1;
+const PACE_IDLE_RESET_MS = 1000;
 const SERVER_RETRY_CAP_MS = 16_000;
 
 export interface MediaSchedulerOptions {
@@ -76,8 +75,8 @@ class DcBalance {
     readonly shiftedById = new Map<number, ShiftedDcId>();
     readonly waiters: Array<() => void> = [];
     completed = 0;
-    private _spacingMs = SPACING_START_MS;
     private _nextSendAt = 0;
+    private _pauseUntil = 0;
 
     constructor(
         readonly dcId: number,
@@ -88,6 +87,13 @@ class DcBalance {
             opts = {
                 ...opts,
                 sessions: Math.min(opts.sessions, LIMITED_UPLOAD_SESSIONS),
+                inFlight: Math.max(
+                    opts.inFlight,
+                    Math.ceil(
+                        (opts.sessions * opts.inFlight) /
+                            Math.min(opts.sessions, LIMITED_UPLOAD_SESSIONS)
+                    )
+                ),
             };
         }
         this.policy = new BalancePolicy(opts);
@@ -101,13 +107,24 @@ class DcBalance {
 
     async pace(signal?: AbortSignal): Promise<void> {
         const now = Date.now();
-        if (now - this._nextSendAt > SPACING_IDLE_MS) {
-            this._spacingMs = SPACING_START_MS;
+        if (now - this._nextSendAt > PACE_IDLE_RESET_MS) {
+            this._nextSendAt = now;
         }
-        const at = Math.max(now, this._nextSendAt);
-        this._nextSendAt = at + this._spacingMs;
-        this._spacingMs = Math.max(SPACING_MIN_MS, this._spacingMs * SPACING_DECAY);
-        if (at > now) await sleepOrAbort(at - now, signal);
+        const at = Math.max(now, this._nextSendAt, this._pauseUntil);
+        this._nextSendAt = at + 1000 / PACE_REQUESTS_PER_SEC;
+        const wait = at - now;
+        if (wait >= PACE_MIN_WAIT_MS) await sleepOrAbort(wait, signal);
+    }
+
+    pauseFor(ms: number): void {
+        const until = Date.now() + Math.max(0, ms);
+        if (until > this._pauseUntil) this._pauseUntil = until;
+        if (until > this._nextSendAt) this._nextSendAt = until;
+    }
+
+    async waitPause(signal?: AbortSignal): Promise<void> {
+        const wait = this._pauseUntil - Date.now();
+        if (wait > 0) await sleepOrAbort(wait, signal);
     }
 
     wakeOne(): void {
@@ -310,6 +327,7 @@ export class MediaScheduler {
         const b = this._balance(dcId, kind);
 
         if (kind === "download") await b.pace(signal);
+        else await b.waitPause(signal);
 
         let id = b.policy.pick(bytes);
         while (id < 0) {
@@ -359,8 +377,10 @@ export class MediaScheduler {
             return result;
         } catch (err: any) {
             if (isFlood(err)) {
+                const seconds = Math.max(1, floodSeconds(err));
+                b.pauseFor(seconds * 1000);
                 this._client._log.debug(
-                    `${kind} on dc ${dcId} hit ${err?.errorMessage ?? "FLOOD_WAIT"}, retrying that part in ${floodSeconds(err)}s`
+                    `${kind} on dc ${dcId} hit ${err?.errorMessage ?? "FLOOD_WAIT"}, pausing ${seconds}s`
                 );
             }
             b.policy.release(id, bytes);

@@ -151,6 +151,54 @@ found them already bounded:
   reads by design (the session API is synchronous); they are plain page-cache
   reads and the entity layer above them is now memory-first (patch 3).
 
+## 7. Gigabit media pipeline
+
+The transfer loops were already parallel but three ceilings kept them far
+below the link speed:
+
+- the default window was 16 parts (4 download sessions x 4 in-flight,
+  8 upload sessions x 2) = 8 MB in flight,
+- download requests were paced at a 3 ms minimum spacing (333 requests/s,
+  about 170 MB/s with 512 KB parts), and the first 64 requests took 250 ms
+  to leave because the spacing started at 50 ms and decayed by 0.8,
+- in-memory downloads collected every part in a `BinaryWriter` and
+  `Buffer.concat`ed once at the end, so a 1 GB download held 2 GB and copied
+  the whole file again; file uploads opened and closed the source file (and
+  copied every part) for each 512 KB slice.
+
+Changes:
+
+- windows are now 8 sessions x 8 in-flight for both directions (64 parts,
+  32 MB in flight). Uploads to DC 2/4 keep their four-connection limit but
+  trade it for depth (4 x 16) so the byte window is unchanged.
+- download pacing is a 4096 requests/s token spacing with no 50 ms ramp;
+  `FLOOD_WAIT` now pauses the whole DC instead of letting the other parts
+  hammer the account while one part sleeps.
+- known-size in-memory downloads allocate the destination once and copy each
+  part straight into its offset (`streamIntoBuffer`), halving peak memory and
+  removing the final full-file copy. Unknown sizes, Buffer outputs and file
+  outputs keep the ordered streaming path.
+- file uploads keep one `FileHandle` open for the whole upload and read into
+  `Buffer.allocUnsafe` slices without the extra `Buffer.from` copy.
+
+Measured with `sim/mediaThroughput.ts` (fake media layer, 20 ms per-part
+round trip, 1 GiB per direction, 8 vCPU container):
+
+```
+[0/4] unduh ke berkas 8 MB : OK (jalur streamParallel)
+[1/4] unduh 64 MB, jendela 1 part : 2.67 s -> 24.0 MiB/s
+[2/4] unduh 1024 MB, jendela 64 part: 1.04 s -> 979.9 MiB/s
+[3/4] unggah 8 MB, pekerja 1    : 1.31 s -> 6.1 MiB/s
+[4/4] unggah 1024 MB, jendela 64 part: 0.71 s -> 1.41 GiB/s
+VERDICT: unduh 1.03 GB/s, unggah 1.51 GB/s (>= 1 GB/s)
+```
+
+The one-part baselines are RTT-bound by construction (512 KB / 20 ms =
+25.6 MB/s); the wide window hides the round trip and lets the same code
+exceed 1 GB/s. Real throughput still depends on the route to the DC and on
+Telegram's own per-account limits (`FLOOD_WAIT`, `FLOOD_PREMIUM_WAIT`), which
+is why a flood still pauses the DC instead of being retried in a tight loop.
+
 ## Scale simulation
 
 `sim/scale500.ts` reproduces the deployment shape without contacting

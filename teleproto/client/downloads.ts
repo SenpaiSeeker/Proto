@@ -110,6 +110,14 @@ function resolvePartSize(client: TelegramClient, partSizeKb?: number): number {
     return size;
 }
 
+function allocateBuffer(size: number): Buffer | undefined {
+    try {
+        return Buffer.alloc(size);
+    } catch {
+        return undefined;
+    }
+}
+
 const HASH_BLOCK = 128 * 1024;
 
 class FileHashChecker {
@@ -182,8 +190,12 @@ export async function downloadFile(
     const totalBytes = totalSize ? totalSize.toJSNumber() : 0;
     const partSize = resolvePartSize(client, partSizeKb);
     const route = { dcId: targetDc };
-
-    const writer = getWriter(outputFile);
+    const memory =
+        outputFile === undefined && totalBytes > 0
+            ? allocateBuffer(totalBytes)
+            : undefined;
+    const writer = memory ? undefined : getWriter(outputFile);
+    let written = 0;
     const abort = new AbortController();
     let timeoutTimer: ReturnType<typeof setTimeout> | undefined;
     let unforward: (() => void) | undefined;
@@ -228,6 +240,19 @@ export async function downloadFile(
                 reportProgress,
                 hashChecker,
             );
+        } else if (memory) {
+            written = await streamIntoBuffer(
+                client,
+                location,
+                route,
+                partSize,
+                totalBytes,
+                memory,
+                abort.signal,
+                reportProgress,
+                hashChecker,
+                dcId === undefined && info.dcId === undefined,
+            );
         } else {
             await streamParallel(
                 client,
@@ -242,10 +267,11 @@ export async function downloadFile(
                 dcId === undefined && info.dcId === undefined,
             );
         }
-        await closeWriter(writer);
+        if (writer) await closeWriter(writer);
+        if (memory) return memory.subarray(0, written);
         return returnWriterValue(writer);
     } catch (err) {
-        await closeWriter(writer).catch(() => {});
+        if (writer) await closeWriter(writer).catch(() => {});
         throw err;
     } finally {
         if (timeoutTimer) clearTimeout(timeoutTimer);
@@ -372,6 +398,88 @@ async function streamParallel(
     if (firstError && !(firstError instanceof MediaAbortError)) {
         throw firstError;
     }
+}
+
+async function streamIntoBuffer(
+    client: TelegramClient,
+    location: Api.TypeInputFileLocation,
+    route: { dcId: number },
+    partSize: number,
+    totalBytes: number,
+    out: Buffer,
+    signal: AbortSignal,
+    onBytes: (n: number) => Promise<void>,
+    hashChecker?: FileHashChecker,
+    probeRoute = false,
+): Promise<number> {
+    const totalParts = Math.max(1, Math.ceil(totalBytes / partSize));
+    let firstPart: Buffer | undefined;
+    if (probeRoute && totalParts > 1) {
+        firstPart = await client._media.getFile(
+            route.dcId,
+            location,
+            bigInt.zero,
+            partSize,
+            signal,
+            (dc) => (route.dcId = dc),
+        );
+    }
+    const dl = client._media.opts.download;
+    const inflight = new BoundedSemaphore(
+        Math.max(1, dl.sessions * dl.inFlight),
+    );
+
+    let firstError: any;
+    let written = 0;
+    const tasks: Promise<void>[] = [];
+
+    for (let i = 0; i < totalParts; i++) {
+        if (signal.aborted || firstError) break;
+        await inflight.acquire();
+        if (signal.aborted || firstError) {
+            inflight.release();
+            break;
+        }
+        const idx = i;
+        const offset = bigInt(idx).multiply(partSize);
+        tasks.push((async () => {
+            try {
+                const data =
+                    idx === 0 && firstPart !== undefined
+                        ? firstPart
+                        : await client._media.getFile(
+                              route.dcId,
+                              location,
+                              offset,
+                              partSize,
+                              signal,
+                              (dc) => (route.dcId = dc),
+                          );
+                if (!firstError) {
+                    if (hashChecker) {
+                        await hashChecker.verify(idx * partSize, data);
+                    }
+                    await onBytes(data.length);
+                    const at = idx * partSize;
+                    const end = Math.min(out.length, at + data.length);
+                    if (end > at) {
+                        data.copy(out, at, 0, end - at);
+                    }
+                    if (end > written) written = end;
+                }
+            } catch (err: any) {
+                if (!firstError) firstError = err;
+            } finally {
+                inflight.release();
+            }
+        })());
+    }
+
+    await Promise.all(tasks);
+    if (firstError && !(firstError instanceof MediaAbortError)) {
+        throw firstError;
+    }
+    return written;
 }
 
 export interface DownloadMediaInterface extends DownloadCancelParams {

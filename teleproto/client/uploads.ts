@@ -79,6 +79,8 @@ interface CustomBufferOptions {
 }
 
 class CustomBuffer {
+    private _handle?: ReturnType<typeof fs.open>;
+
     constructor(private readonly options: CustomBufferOptions) {
         if (!options.buffer && !options.filePath) {
             throw new Error(
@@ -90,19 +92,35 @@ class CustomBuffer {
     async slice(begin: number, end: number): Promise<Buffer> {
         const { buffer, filePath } = this.options;
         if (buffer) {
-            return buffer.slice(begin, end);
+            return buffer.subarray(begin, end);
         } else if (filePath) {
-            const buffSize = end - begin;
-            const buff = Buffer.alloc(buffSize);
-            const fHandle = await fs.open(filePath, "r");
+            const buffSize = Math.max(0, end - begin);
+            const buff = Buffer.allocUnsafe(buffSize);
+            const pending = (this._handle ??= fs.open(filePath, "r"));
+            let fHandle: Awaited<typeof pending>;
+            try {
+                fHandle = await pending;
+            } catch (err) {
+                if (this._handle === pending) this._handle = undefined;
+                throw err;
+            }
 
-            await fHandle.read(buff, 0, buffSize, begin);
-            await fHandle.close();
+            const { bytesRead } = await fHandle.read(buff, 0, buffSize, begin);
 
-            return Buffer.from(buff);
+            return bytesRead === buffSize
+                ? buff
+                : buff.subarray(0, bytesRead);
         }
 
         return Buffer.alloc(0);
+    }
+
+    async close(): Promise<void> {
+        const handle = this._handle;
+        this._handle = undefined;
+        if (!handle) return;
+        const opened = await handle.catch(() => undefined);
+        await opened?.close().catch(() => undefined);
     }
 }
 
@@ -119,7 +137,10 @@ async function getFileBuffer(
     if (fileSize > maxBufferSize && file instanceof CustomFile && file.path) {
         options.filePath = file.path;
     } else {
-        options.buffer = Buffer.from(await fileToBuffer(file));
+        const loaded = await fileToBuffer(file);
+        options.buffer = Buffer.isBuffer(loaded)
+            ? loaded
+            : Buffer.from(loaded);
     }
 
     return new CustomBuffer(options);
@@ -229,6 +250,7 @@ export async function uploadFile(
     }
 
     await Promise.all(tasks);
+    await buffer.close();
     if (firstError) {
         throw firstError;
     }
