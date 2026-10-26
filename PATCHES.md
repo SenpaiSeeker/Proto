@@ -199,6 +199,17 @@ exceed 1 GB/s. Real throughput still depends on the route to the DC and on
 Telegram's own per-account limits (`FLOOD_WAIT`, `FLOOD_PREMIUM_WAIT`), which
 is why a flood still pauses the DC instead of being retried in a tight loop.
 
+## 8. Stale channel update tracking
+
+A channel tracker could outlive access to its channel. `resolveChannel` swallowed the failure and returned `undefined`; `fetchChannelDifferenceOnce` only logged a warning and left the PTS timer alive, so every retry repeated `channels.GetChannels` and printed an error stack. In the observed deployment this happened once per second for channel `2214771215`.
+
+The update manager now classifies channel resolution:
+
+- `CHANNEL_INVALID` and `CHANNEL_PRIVATE` drop the tracker immediately.
+- other resolution failures retry with the existing backoff, then drop after three attempts.
+
+`getInputEntity` now logs those two expected errors at DEBUG and keeps the original RPC error as the generic error's `cause`. This removes the runaway timer/RPC loop and the repeated stack trace while leaving valid channel difference processing unchanged. `sim/staleChannel.ts` covers invalid, transient and valid resolution paths.
+
 ## Scale simulation
 
 `sim/scale500.ts` reproduces the deployment shape without contacting

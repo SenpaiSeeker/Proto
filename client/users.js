@@ -451,6 +451,8 @@ async function _getChannelsWithCommunityFallback(client, inputs) {
  * @hidden
  */
 async function getInputEntity(client, peer) {
+    let channelResolutionFailed = false;
+    let channelResolutionError;
     // Short-circuit if the input parameter directly maps to an InputPeer
     try {
         return utils.getInputPeer(peer);
@@ -550,16 +552,27 @@ async function getInputEntity(client, peer) {
             return utils.getInputPeer(channels[0]);
         }
         catch (e) {
-            client._log.error("Error while resolving channel entity", e);
+            channelResolutionFailed = true;
+            channelResolutionError = e;
+            const msg = e?.errorMessage;
+            if (msg === "CHANNEL_INVALID" || msg === "CHANNEL_PRIVATE") {
+                client._log.debug(`Cannot resolve channel entity (${msg})`);
+            }
+            else {
+                client._log.error("Error while resolving channel entity", e);
+            }
             if (client._errorHandler) {
                 await client._errorHandler(e);
             }
         }
     }
-    throw new Error(`Could not find the input entity for ${JSON.stringify(peer)}.
+    const error = new Error(`Could not find the input entity for ${JSON.stringify(peer)}.
          Please read https://` +
         "docs.teleproto.dev/concepts/entities to" +
         " find out more details.");
+    if (channelResolutionFailed)
+        error.cause = channelResolutionError;
+    throw error;
 }
 /** @hidden */
 async function _getEntityFromString(client, string) {
