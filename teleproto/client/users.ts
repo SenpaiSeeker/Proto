@@ -511,6 +511,8 @@ export async function getInputEntity(
     client: TelegramClient,
     peer: EntityLike
 ): Promise<Api.TypeInputPeer> {
+    let channelResolutionFailed = false;
+    let channelResolutionError: unknown;
     // Short-circuit if the input parameter directly maps to an InputPeer
 
     try {
@@ -614,18 +616,27 @@ export async function getInputEntity(
 
             return utils.getInputPeer(channels[0]);
         } catch (e) {
-            client._log.error("Error while resolving channel entity", e);
+            channelResolutionFailed = true;
+            channelResolutionError = e;
+            const msg = (e as { errorMessage?: string })?.errorMessage;
+            if (msg === "CHANNEL_INVALID" || msg === "CHANNEL_PRIVATE") {
+                client._log.debug(`Cannot resolve channel entity (${msg})`);
+            } else {
+                client._log.error("Error while resolving channel entity", e);
+            }
             if (client._errorHandler) {
                 await client._errorHandler(e as Error);
             }
         }
     }
-    throw new Error(
+    const error = new Error(
         `Could not find the input entity for ${JSON.stringify(peer)}.
          Please read https://` +
             "docs.teleproto.dev/concepts/entities to" +
             " find out more details."
-    );
+    ) as Error & { cause?: unknown };
+    if (channelResolutionFailed) error.cause = channelResolutionError;
+    throw error;
 }
 
 /** @hidden */

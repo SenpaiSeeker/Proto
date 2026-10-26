@@ -57,7 +57,13 @@ interface ChannelTracker {
     timer?: NodeJS.Timeout;
     inputChannel?: Api.TypeInputChannel;
     pollTimer?: NodeJS.Timeout;
+    resolveFailures?: number;
 }
+
+type ChannelResolution =
+    | { kind: "ok"; input: Api.TypeInputChannel }
+    | { kind: "invalid"; reason: string }
+    | { kind: "transient" };
 
 type DispatchPayload = {
     others: Api.TypeUpdate[] | null;
@@ -952,74 +958,97 @@ export class UpdateManager {
         let failed = false;
         let serverTimeoutS: number | undefined;
         try {
-            const inputChannel = await this.resolveChannel(channelId, tracker);
+            const resolved = await this.resolveChannel(channelId, tracker);
             if (!active()) return;
-            if (!inputChannel) {
-                this.client._log.warn(`Cannot resolve channel ${channelId}; skipping diff`);
+            if (resolved.kind === "invalid") {
+                this.client._log.info(
+                    `Channel ${channelId} is inaccessible (${resolved.reason}); dropping difference tracking`,
+                );
+                this.dropChannel(channelId);
                 return;
             }
-            tracker.inputChannel = inputChannel;
+            if (resolved.kind === "transient") {
+                const failures = (tracker.resolveFailures ?? 0) + 1;
+                tracker.resolveFailures = failures;
+                if (failures >= 3) {
+                    this.client._log.info(
+                        `Channel ${channelId} could not be resolved after ${failures} attempts; dropping difference tracking`,
+                    );
+                    this.dropChannel(channelId);
+                    return;
+                }
+                if (failures === 1) {
+                    this.client._log.warn(`Cannot resolve channel ${channelId}; retrying (${failures}/3)`);
+                } else {
+                    this.client._log.debug(`Cannot resolve channel ${channelId}; retrying (${failures}/3)`);
+                }
+                failed = true;
+            } else {
+                tracker.resolveFailures = 0;
+                const inputChannel = resolved.input;
+                tracker.inputChannel = inputChannel;
 
-            let fetching = true;
-            while (fetching && active()) {
-                const diff = await this.invokeChannel(channelId, () =>
-                    new Api.updates.GetChannelDifference({
-                        channel: inputChannel,
-                        filter: new Api.ChannelMessagesFilterEmpty(),
-                        pts: tracker.pts.current(),
-                        limit: CHANNEL_DIFFERENCE_LIMIT,
-                        force: opts.keepAlive ? undefined : true,
-                    }),
-                );
-                if (!active()) return;
-                if (diff.timeout !== undefined) serverTimeoutS = diff.timeout;
-
-                if (diff instanceof Api.updates.ChannelDifferenceEmpty) {
-                    if (diff.pts) tracker.pts.init(diff.pts, true);
-                    fetching = !diff.final;
-                } else if (diff instanceof Api.updates.ChannelDifference) {
-                    const entities = this.collectEntities(diff.users, diff.chats);
-                    this.client._entityCache.add(diff);
-                    await this.saveEntities(diff);
+                let fetching = true;
+                while (fetching && active()) {
+                    const diff = await this.invokeChannel(channelId, () =>
+                        new Api.updates.GetChannelDifference({
+                            channel: inputChannel,
+                            filter: new Api.ChannelMessagesFilterEmpty(),
+                            pts: tracker.pts.current(),
+                            limit: CHANNEL_DIFFERENCE_LIMIT,
+                            force: opts.keepAlive ? undefined : true,
+                        }),
+                    );
                     if (!active()) return;
+                    if (diff.timeout !== undefined) serverTimeoutS = diff.timeout;
 
-                    for (const message of diff.newMessages) {
-                        if (message instanceof Api.Message || message instanceof Api.MessageService) {
+                    if (diff instanceof Api.updates.ChannelDifferenceEmpty) {
+                        if (diff.pts) tracker.pts.init(diff.pts, true);
+                        fetching = !diff.final;
+                    } else if (diff instanceof Api.updates.ChannelDifference) {
+                        const entities = this.collectEntities(diff.users, diff.chats);
+                        this.client._entityCache.add(diff);
+                        await this.saveEntities(diff);
+                        if (!active()) return;
+
+                        for (const message of diff.newMessages) {
+                            if (message instanceof Api.Message || message instanceof Api.MessageService) {
+                                this.dispatch(
+                                    new Api.UpdateNewChannelMessage({ message, pts: 0, ptsCount: 0 }),
+                                    { others: null, entities },
+                                );
+                            }
+                        }
+                        for (const update of diff.otherUpdates) {
+                            this.dispatch(update, { others: diff.otherUpdates, entities });
+                        }
+                        tracker.pts.init(diff.pts, true);
+                        fetching = !diff.final;
+                    } else if (diff instanceof Api.updates.ChannelDifferenceTooLong) {
+                        this.client._log.warn(`Channel ${channelId} difference too long`);
+                        if (diff.dialog instanceof Api.Dialog && diff.dialog.pts !== undefined) {
+                            tracker.pts.init(diff.dialog.pts, true);
+                        }
+                        const entities = this.collectEntities(diff.users, diff.chats);
+                        this.client._entityCache.add(diff);
+                        await this.saveEntities(diff);
+                        if (!active()) return;
+                        const included = diff.messages.filter(
+                            (m): m is Api.Message | Api.MessageService =>
+                                m instanceof Api.Message || m instanceof Api.MessageService,
+                        );
+                        included.sort((a, b) => a.id - b.id);
+                        for (const message of included) {
                             this.dispatch(
                                 new Api.UpdateNewChannelMessage({ message, pts: 0, ptsCount: 0 }),
                                 { others: null, entities },
                             );
                         }
+                        fetching = !diff.final;
                     }
-                    for (const update of diff.otherUpdates) {
-                        this.dispatch(update, { others: diff.otherUpdates, entities });
-                    }
-                    tracker.pts.init(diff.pts, true);
-                    fetching = !diff.final;
-                } else if (diff instanceof Api.updates.ChannelDifferenceTooLong) {
-                    this.client._log.warn(`Channel ${channelId} difference too long`);
-                    if (diff.dialog instanceof Api.Dialog && diff.dialog.pts !== undefined) {
-                        tracker.pts.init(diff.dialog.pts, true);
-                    }
-                    const entities = this.collectEntities(diff.users, diff.chats);
-                    this.client._entityCache.add(diff);
-                    await this.saveEntities(diff);
-                    if (!active()) return;
-                    const included = diff.messages.filter(
-                        (m): m is Api.Message | Api.MessageService =>
-                            m instanceof Api.Message || m instanceof Api.MessageService,
-                    );
-                    included.sort((a, b) => a.id - b.id);
-                    for (const message of included) {
-                        this.dispatch(
-                            new Api.UpdateNewChannelMessage({ message, pts: 0, ptsCount: 0 }),
-                            { others: null, entities },
-                        );
-                    }
-                    fetching = !diff.final;
                 }
+                this.channelFailTimeoutS.delete(channelId);
             }
-            this.channelFailTimeoutS.delete(channelId);
         } catch (e) {
             if (!active() || e instanceof ChannelPollCancelledError) return;
             if (this.client.updates._suspendAuthorization(e)) return;
@@ -1062,17 +1091,26 @@ export class UpdateManager {
     private async resolveChannel(
         channelId: string,
         tracker: ChannelTracker,
-    ): Promise<Api.TypeInputChannel | undefined> {
-        if (tracker.inputChannel) return tracker.inputChannel;
+    ): Promise<ChannelResolution> {
+        if (tracker.inputChannel) return { kind: "ok", input: tracker.inputChannel };
         try {
             const peer = new Api.PeerChannel({ channelId: returnBigInt(channelId) });
             const input = await this.client.getInputEntity(peer);
             if (input instanceof Api.InputPeerChannel) {
-                return new Api.InputChannel({ channelId: input.channelId, accessHash: input.accessHash });
+                return {
+                    kind: "ok",
+                    input: new Api.InputChannel({ channelId: input.channelId, accessHash: input.accessHash }),
+                };
             }
-        } catch {
+            return { kind: "transient" };
+        } catch (e) {
+            const error = e as { errorMessage?: string; cause?: { errorMessage?: string } };
+            const reason = error.cause?.errorMessage ?? error.errorMessage;
+            if (reason === "CHANNEL_INVALID" || reason === "CHANNEL_PRIVATE") {
+                return { kind: "invalid", reason };
+            }
+            return { kind: "transient" };
         }
-        return undefined;
     }
 
     private scheduleChannelPoll(channelId: string, serverTimeoutS?: number): void {
