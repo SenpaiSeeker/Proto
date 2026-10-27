@@ -26,14 +26,15 @@ import { monitorEventLoopDelay, performance } from "perf_hooks";
 import { gzipSync, unzipSync } from "zlib";
 
 import { TelegramClient } from "../teleproto/client/TelegramClient";
+import { openTarget } from "../teleproto/client/files/sinks";
 import { AuthKey } from "../teleproto/crypto/AuthKey";
+import { MTProtoSender } from "../teleproto/network";
 import { Connection } from "../teleproto/network/connection/Connection";
-import { PromisedNetSockets } from "../teleproto/extensions/PromisedNetSockets";
+import { PromisedNetSockets } from "../teleproto/compat/extensions/PromisedNetSockets";
 import { StringSession } from "../teleproto/sessions/StringSession";
 import { StoreSession } from "../teleproto/sessions/StoreSession";
 import { Api } from "../teleproto/tl";
 import { GZIPPacked } from "../teleproto/tl/core/GZIPPacked";
-import { writeWithBackpressure } from "../teleproto/network/OrderedWriter";
 import { Logger, LogLevel } from "../teleproto/extensions/Logger";
 
 const SIM_API_ID = 2040;
@@ -163,39 +164,32 @@ class LoopMonitor {
     }
 }
 
-interface SenderLike {
-    send(request: unknown): Promise<unknown>;
-}
+let senderPatched = false;
 
-interface ConnectSenderHost {
-    _connectSender(
-        sender: SenderLike,
-        dcId: number,
-        connection?: unknown,
-        mediaCluster?: boolean,
-    ): Promise<unknown>;
-}
-
-function patchBootstrap(client: TelegramClient): void {
-    const host = client as unknown as ConnectSenderHost;
-    const original = host._connectSender.bind(client);
-    host._connectSender = async (sender, dcId, connection, mediaCluster) => {
-        const originalSend = sender.send.bind(sender);
-        sender.send = async (request: unknown): Promise<unknown> => {
-            const className = (request as { className?: string }).className;
-            if (className === "InvokeWithLayer") return undefined;
-            if (className === "updates.GetState") {
-                return new Api.updates.State({
-                    pts: 0,
-                    qts: 0,
-                    date: Math.floor(Date.now() / 1000),
-                    seq: 0,
-                    unreadCount: 0,
-                });
-            }
-            return await originalSend(request);
-        };
-        return await original(sender, dcId, connection, mediaCluster);
+function patchBootstrap(): void {
+    if (senderPatched) return;
+    senderPatched = true;
+    const prototype = MTProtoSender.prototype as unknown as {
+        send(request: { className?: string }): Promise<unknown>;
+    };
+    const originalSend = prototype.send;
+    prototype.send = async function (
+        request: { className?: string }
+    ): Promise<unknown> {
+        const className = request.className;
+        if (className === "InvokeWithLayer" || className === "help.GetConfig") {
+            return undefined;
+        }
+        if (className === "updates.GetState") {
+            return new Api.updates.State({
+                pts: 0,
+                qts: 0,
+                date: Math.floor(Date.now() / 1000),
+                seq: 0,
+                unreadCount: 0,
+            });
+        }
+        return await originalSend.call(this, request);
     };
 }
 
@@ -226,7 +220,7 @@ async function makeClient(): Promise<TelegramClient> {
             langCode: "en",
         },
     );
-    patchBootstrap(client);
+    patchBootstrap();
     return client;
 }
 
@@ -280,10 +274,10 @@ async function phasePing(
     for (const client of clients) {
         const sender = (
             client as unknown as {
-                _sender?: { _connection?: SimConnection };
+                _sender?: { connection?: SimConnection };
             }
         )._sender;
-        sentBytes += sender?._connection?.sentBytes ?? 0;
+        sentBytes += sender?.connection?.sentBytes ?? 0;
     }
     return {
         blocking: isBlocking(report),
@@ -543,6 +537,13 @@ async function phaseDownloadWrites(
         monitor.start();
         const started = performance.now();
         const sinks = Array.from({ length: writers }, makeSink);
+        const targets = patched
+            ? await Promise.all(
+                  sinks.map((sink) =>
+                      openTarget(sink as never, fileKb * 1024)
+                  )
+              )
+            : [];
         let peakQueued = 0;
         const sampleQueued = () => {
             let total = 0;
@@ -550,16 +551,18 @@ async function phaseDownloadWrites(
             if (total > peakQueued) peakQueued = total;
         };
         await Promise.all(
-            sinks.map(async (sink) => {
+            sinks.map(async (sink, index) => {
+                const target = targets[index];
                 for (let c = 0; c < chunksPerFile; c += 1) {
                     const chunk = Buffer.alloc(chunkKb * 1024, c % 251);
                     if (patched) {
-                        await writeWithBackpressure(sink, chunk);
+                        await target!.write(c * chunk.length, chunk);
                     } else {
                         sink.write(chunk);
                     }
                     sampleQueued();
                 }
+                if (patched) await target!.close();
                 await new Promise<void>((resolve, reject) => {
                     sink.once("error", reject);
                     sink.end(() => resolve());
@@ -634,7 +637,7 @@ async function phaseSocketBackpressure(
     await socket.connect(port, "127.0.0.1");
     let patchedPeak = 0;
     const sampler = setInterval(() => {
-        const queued = (socket as any).client?.writableLength ?? 0;
+        const queued = (socket as any).socket?.writableLength ?? 0;
         if (queued > patchedPeak) {
             patchedPeak = queued;
         }

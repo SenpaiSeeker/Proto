@@ -162,10 +162,21 @@ transient and valid resolution paths against the new `ChannelUpdates` class.
 # stale channel regression: OK
 ```
 
-`sim/entityCacheMemory.ts` still measures the entity-cache memory bound.
-`sim/mediaThroughput.ts` and `sim/scale500.ts` were written against the
-1.230.1 transport/media internals and need a 1.232 re-baseline before they
-can be used as gates.
+`sim/scale500.ts` was updated for the 1.232 network stack. It builds 500
+clients over an in-process connection, runs a ping storm, exercises async
+GZIP, writes and loads 500 file-backed sessions, performs 200k entity lookups,
+and drives 500 slow download sinks plus a slow TCP peer. It reports no
+blocking I/O on this host:
+
+```bash
+npx tsx sim/scale500.ts --clients=500 --seconds=5 --sessions=500
+# VERDICT: no blocking I/O detected
+```
+
+`sim/entityCacheMemory.ts` still measures the entity-cache memory bound. The
+old 1.230.1 media throughput harness is archived under `sim/legacy/` because
+it imports the removed `MediaScheduler`/`OrderedWriter` APIs. A new 1.232
+media baseline is still needed before making a gigabit-per-second claim.
 
 ## Related fix outside this repository
 
