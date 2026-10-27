@@ -1,121 +1,121 @@
 import assert from "node:assert/strict";
 import bigInt from "big-integer";
 import { Api } from "../teleproto/tl";
-import { UpdateManager } from "../teleproto/client/updates/manager";
+import { ChannelUpdates } from "../teleproto/client/updates/ChannelUpdates";
 
 type Tracker = {
     pts: {
-        init: (pts: number) => void;
+        init: (pts: number, force?: boolean) => void;
     };
+    retryTimer?: NodeJS.Timeout;
 };
 
-type ManagerInternals = {
-    running: boolean;
-    channels: Map<string, Tracker>;
-    channelFailRetryTimers: Map<string, NodeJS.Timeout>;
-    getOrCreateChannel: (channelId: string) => Tracker;
-    resolveChannel: (channelId: string, tracker: Tracker) => Promise<unknown>;
-    invokeChannel: (channelId: string, make: () => unknown) => Promise<unknown>;
-    fetchChannelDifferenceOnce: (channelId: string) => Promise<void>;
+type Resolution = { kind: "ok"; input: Api.TypeInputChannel } | { kind: "invalid"; reason: string } | { kind: "transient" };
+
+type Internals = {
+    trackers: Map<string, Tracker>;
+    watched: Map<string, number>;
+    tracker: (channelId: string) => Tracker;
+    resolve: (channelId: string, tracker: Tracker) => Promise<Resolution>;
+    fetchDifferenceOnce: (channelId: string, tracker: Tracker) => Promise<void>;
+    invoke: (channelId: string, create: () => unknown) => Promise<unknown>;
 };
 
 const logs: string[] = [];
 
-const client = {
-    _channelPollRequestInterval: 10,
-    _channelPollConcurrency: 4,
-    _channelPollInterval: 1000,
-    _log: {
-        debug: () => {},
-        info: (message: string) => logs.push(message),
-        warn: (message: string) => logs.push(message),
-        error: () => {},
-    },
-    updates: {
-        authorizationError: undefined,
-        _suspendAuthorization: () => false,
-    },
-    _entityCache: {
-        add: () => {},
-    },
-};
-
-const manager = new UpdateManager(client as never);
-const internals = manager as unknown as ManagerInternals;
-internals.running = true;
-
-async function waitFor(check: () => boolean, timeoutMs: number): Promise<void> {
-    const started = Date.now();
-    while (!check()) {
-        if (Date.now() - started > timeoutMs) {
-            throw new Error("Timed out waiting for condition");
-        }
-        await new Promise((resolve) => setTimeout(resolve, 50));
-    }
+function makeUpdates() {
+    const client = {
+        _channelPollRequestInterval: 10,
+        _channelPollConcurrency: 4,
+        _channelPollInterval: 1000,
+        _bot: false,
+        _destroyed: false,
+        _log: {
+            debug: (message: string) => logs.push(message),
+            info: (message: string) => logs.push(message),
+            warn: (message: string) => logs.push(message),
+            error: (message: string) => logs.push(message),
+        },
+        updates: {
+            authorizationError: undefined,
+            _suspendAuthorization: () => false,
+        },
+        _entityCache: {
+            add: () => {},
+        },
+        getInputEntity: async () => {
+            throw new Error("unexpected getInputEntity");
+        },
+    };
+    const host = {
+        client,
+        generation: 1,
+        isCurrent: (generation: number) => generation === 1,
+        dispatch: () => {},
+        saveEntities: async () => {},
+        saveState: () => {},
+        requestDifference: () => {},
+    };
+    const updates = new ChannelUpdates(host as never);
+    return { client, updates, internals: updates as unknown as Internals };
 }
 
 async function testInvalidChannel(): Promise<void> {
+    const { client, updates, internals } = makeUpdates();
     const channelId = "2214771215";
-    const tracker = internals.getOrCreateChannel(channelId);
+    const tracker = internals.tracker(channelId);
     tracker.pts.init(100);
-    internals.resolveChannel = async () => ({ kind: "invalid", reason: "CHANNEL_INVALID" });
+    client.getInputEntity = async () => {
+        const error = new Error("channel invalid") as Error & { errorMessage: string };
+        error.errorMessage = "CHANNEL_INVALID";
+        throw error;
+    };
 
-    await internals.fetchChannelDifferenceOnce(channelId);
+    await internals.fetchDifferenceOnce(channelId, tracker);
 
-    assert.equal(internals.channels.has(channelId), false);
-    assert.equal(internals.channelFailRetryTimers.has(channelId), false);
+    assert.equal(internals.trackers.has(channelId), false);
     assert.ok(logs.some((message) => message.includes("inaccessible")));
+    updates.stop();
 }
 
 async function testTransientChannel(): Promise<void> {
+    const { client, updates, internals } = makeUpdates();
     const channelId = "1234567890";
-    const tracker = internals.getOrCreateChannel(channelId);
+    const tracker = internals.tracker(channelId);
     tracker.pts.init(100);
-    let attempts = 0;
-    internals.resolveChannel = async () => {
-        attempts += 1;
-        return { kind: "transient" };
+    client.getInputEntity = async () => {
+        throw new Error("temporary failure");
     };
 
-    await internals.fetchChannelDifferenceOnce(channelId);
+    await internals.fetchDifferenceOnce(channelId, tracker);
+    assert.equal(internals.trackers.has(channelId), true);
+    assert.ok(tracker.retryTimer);
 
-    assert.equal(attempts, 1);
-    assert.equal(internals.channels.has(channelId), true);
-    assert.equal(internals.channelFailRetryTimers.has(channelId), true);
+    await internals.fetchDifferenceOnce(channelId, tracker);
+    assert.equal(internals.trackers.has(channelId), true);
 
-    await waitFor(() => !internals.channels.has(channelId), 7000);
-
-    assert.equal(attempts, 3);
-    assert.equal(internals.channels.has(channelId), false);
-    assert.equal(internals.channelFailRetryTimers.has(channelId), false);
+    await internals.fetchDifferenceOnce(channelId, tracker);
+    assert.equal(internals.trackers.has(channelId), false);
+    assert.ok(logs.some((message) => message.includes("could not be resolved after 3 attempts")));
+    updates.stop();
 }
 
 async function testValidChannel(): Promise<void> {
+    const { client, updates, internals } = makeUpdates();
     const channelId = "987654321";
-    const tracker = internals.getOrCreateChannel(channelId);
+    const tracker = internals.tracker(channelId);
     tracker.pts.init(100);
-    let invoked = 0;
-    internals.resolveChannel = async () => ({
-        kind: "ok",
-        input: new Api.InputChannel({
-            channelId: bigInt(channelId),
-            accessHash: bigInt(0),
-        }),
-    });
-    internals.invokeChannel = async () => {
-        invoked += 1;
-        return new Api.updates.ChannelDifferenceEmpty({
-            final: true,
-            pts: 101,
-            timeout: 0,
-        });
-    };
+    internals.watched.set(channelId, 1);
+    client.getInputEntity = async () =>
+        new Api.InputPeerChannel({ channelId: bigInt(channelId), accessHash: bigInt(0) });
+    internals.invoke = async () =>
+        new Api.updates.ChannelDifferenceEmpty({ final: true, pts: 101, timeout: 0 });
 
-    await internals.fetchChannelDifferenceOnce(channelId);
+    await internals.fetchDifferenceOnce(channelId, tracker);
 
-    assert.equal(invoked, 1);
-    assert.equal(internals.channels.has(channelId), true);
-    assert.equal(internals.channelFailRetryTimers.has(channelId), false);
+    assert.equal(internals.trackers.has(channelId), true);
+    assert.equal(tracker.retryTimer, undefined);
+    updates.stop();
 }
 
 async function main(): Promise<void> {
