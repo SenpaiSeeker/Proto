@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthKey = void 0;
 const Helpers_1 = require("../Helpers");
-const extensions_1 = require("../extensions");
+const Reader_1 = require("../tl/binary/Reader");
 const Helpers_2 = require("../Helpers");
 class AuthKey {
     constructor(value, hash) {
@@ -11,7 +11,7 @@ class AuthKey {
         }
         this._key = value;
         this._hash = hash;
-        const reader = new extensions_1.BinaryReader(hash);
+        const reader = new Reader_1.Reader(hash);
         this.auxHash = reader.readLong(false);
         reader.read(4);
         this.keyId = reader.readLong(false);
@@ -30,7 +30,7 @@ class AuthKey {
         }
         this._key = value;
         this._hash = await (0, Helpers_1.sha1)(this._key);
-        const reader = new extensions_1.BinaryReader(this._hash);
+        const reader = new Reader_1.Reader(this._hash);
         this.auxHash = reader.readLong(false);
         reader.read(4);
         this.keyId = reader.readLong(false);

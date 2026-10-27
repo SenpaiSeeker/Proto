@@ -4,8 +4,8 @@ import { Api } from "../api";
 import type { TelegramClient } from "../../client/TelegramClient";
 import { Forward } from "./forward";
 import { File } from "./file";
-import { EditMessageParams, ForwardMessagesParams, MarkAsReadParams, SendMessageParams, UpdatePinMessageParams } from "../../client/messages";
-import { DownloadMediaInterface } from "../../client/downloads";
+import { EditMessageParams, ForwardMessagesParams, MarkAsReadParams, SendMessageParams, UpdatePinMessageParams } from "../../client/methods/messages";
+import { DownloadMediaInterface } from "../../client/methods/downloads";
 import { BigInteger } from "big-integer";
 import { MessageButton } from "./messageButton";
 interface MessageBaseInterface {
@@ -443,5 +443,4 @@ export declare class CustomMessage extends SenderGetter {
     _neededMarkupBot(): any;
     _documentByAttribute(kind: Function, condition?: Function): Api.Document | undefined;
 }
-export declare function installMessageBehaviour(): void;
 export {};

@@ -1116,22 +1116,12 @@ function getPeerId(peer, addMark = true) {
         return peer.userId.toString();
     }
     else if (peer instanceof api_1.Api.PeerChat) {
-        // Check in case the user mixed things up to avoid blowing up
-        peer.chatId = resolveId((0, Helpers_1.returnBigInt)(peer.chatId))[0];
-        return addMark
-            ? peer.chatId.negate().toString()
-            : peer.chatId.toString();
+        const chatId = resolveId((0, Helpers_1.returnBigInt)(peer.chatId))[0];
+        return addMark ? chatId.negate().toString() : chatId.toString();
     }
     else if (typeof peer == "object" && "channelId" in peer) {
-        // if (peer instanceof Api.PeerChannel)
-        // Check in case the user mixed things up to avoid blowing up
-        peer.channelId = resolveId((0, Helpers_1.returnBigInt)(peer.channelId))[0];
-        if (!addMark) {
-            return peer.channelId.toString();
-        }
-        // Concat -100 through math tricks, .to_supergroup() on
-        // Madeline IDs will be strictly positive -> log works.
-        return "-100" + peer.channelId.toString();
+        const channelId = resolveId((0, Helpers_1.returnBigInt)(peer.channelId))[0];
+        return addMark ? "-100" + channelId.toString() : channelId.toString();
     }
     _raiseCastFail(peer, "int");
 }

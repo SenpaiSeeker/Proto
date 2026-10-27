@@ -1,31 +1,32 @@
-import { TelegramBaseClient, TelegramClientParams } from "./telegramBaseClient";
-import * as authMethods from "./auth";
-import * as botMethods from "./bots";
-import * as downloadMethods from "./downloads";
-import * as parseMethods from "./messageParse";
-import * as messageMethods from "./messages";
-import * as uploadMethods from "./uploads";
-import * as userMethods from "./users";
-import * as chatMethods from "./chats";
-import * as communityMethods from "./communities";
-import * as inviteLinkMethods from "./inviteLinks";
-import * as accountMethods from "./account";
-import * as contactMethods from "./contacts";
-import * as dialogMethods from "./dialogs";
-import * as twoFA from "./2fa";
-import * as forumMethods from "./forums";
-import * as storyMethods from "./stories";
-import * as stickerMethods from "./stickers";
-import * as walletMethods from "./wallet";
+import { TelegramBaseClient, TelegramClientParams } from "./TelegramBaseClient";
+import type { DcAddress } from "../network/dc/DcAddressBook";
+import * as authMethods from "./methods/auth";
+import * as botMethods from "./methods/bots";
+import * as downloadMethods from "./methods/downloads";
+import * as parseMethods from "./methods/messageParse";
+import * as messageMethods from "./methods/messages";
+import * as uploadMethods from "./methods/uploads";
+import * as userMethods from "./methods/users";
+import * as chatMethods from "./methods/chats";
+import * as communityMethods from "./methods/communities";
+import * as inviteLinkMethods from "./methods/inviteLinks";
+import * as accountMethods from "./methods/account";
+import * as contactMethods from "./methods/contacts";
+import * as dialogMethods from "./methods/dialogs";
+import * as twoFA from "./methods/2fa";
+import * as forumMethods from "./methods/forums";
+import * as storyMethods from "./methods/stories";
+import * as stickerMethods from "./methods/stickers";
+import * as walletMethods from "./methods/wallet";
 import type { BigInteger } from "big-integer";
 import type { MarkupLike, Entity, EntityLike, FileLike, MessageIDLike } from "../define";
 import { Api } from "../tl";
 import type { EventBuilder } from "../events/common";
 import { MTProtoSender } from "../network";
-import type { SessionLease } from "../network/Network";
-import { DownloadMediaInterface } from "./downloads";
+import type { SessionLease } from "../network/dc/SessionPool";
+import { DownloadMediaInterface } from "./methods/downloads";
 import { NewMessage, NewMessageEvent } from "../events";
-import { ClientUpdates } from "./updates/composer";
+import { ClientUpdates } from "./updates/ClientUpdates";
 import { Session } from "../sessions";
 import { Album, AlbumEvent } from "../events/Album";
 import { CallbackQuery, CallbackQueryEvent } from "../events/CallbackQuery";
@@ -2172,6 +2173,7 @@ export declare class TelegramClient<S extends Session = Session> extends Telegra
     /** @hidden */
     _getInputNotify(notify: any): Promise<any>;
     /** @hidden */
+    private _nextMainConnection;
     _handleReconnect(): Promise<void>;
     connect(): Promise<boolean>;
     private _connectOnce;
@@ -2186,14 +2188,7 @@ export declare class TelegramClient<S extends Session = Session> extends Telegra
      * (These only support downloading/uploading and not creating a new AUTH key)
      * @category Connection
      */
-    getDC(dcId: number, downloadDC?: boolean): Promise<{
-        id: number;
-        ipAddress: string;
-        port: number;
-    }>;
-    private _lookupDcOption;
-    /** @hidden */
-    _getDownloadConcurrency(fileSize: number): Promise<number>;
+    getDC(dcId: number, downloadDC?: boolean): Promise<DcAddress>;
     /** @hidden */
     _getResponseMessage(req: any, result: any, inputChat: any): Api.TypeMessage | Map<number, Api.Message> | (Api.Message | undefined)[] | undefined;
     /** @hidden */

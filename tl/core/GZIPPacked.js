@@ -1,59 +1,61 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GZIPPacked = void 0;
-const helpers_1 = require("../runtime/helpers");
 const zlib_1 = require("zlib");
+const Writer_1 = require("../binary/Writer");
+const MIN_COMPRESS_SIZE = 128;
+const SAMPLE_FROM_SIZE = 16384;
+const SAMPLE_SIZE = 1024;
+const MAX_RATIO = 0.9;
 class GZIPPacked {
     static { this.CONSTRUCTOR_ID = 0x3072cfa1; }
     static { this.classType = "constructor"; }
-    constructor(data) {
+    constructor(data, compressed = false) {
         this.data = data;
-        this.CONSTRUCTOR_ID = 0x3072cfa1;
+        this.compressed = compressed;
+        this.CONSTRUCTOR_ID = GZIPPacked.CONSTRUCTOR_ID;
         this.classType = "constructor";
     }
-    static async gzipIfSmaller(contentRelated, data) {
-        if (contentRelated && data.length > 512) {
-            const gzipped = await new GZIPPacked(data).toBytes();
-            if (gzipped.length < data.length) {
-                return gzipped;
-            }
+    static gzipIfSmaller(contentRelated, data) {
+        if (!contentRelated || data.length < MIN_COMPRESS_SIZE)
+            return data;
+        if (data.length >= SAMPLE_FROM_SIZE) {
+            const middle = data.subarray((data.length - SAMPLE_SIZE) >> 1, (data.length + SAMPLE_SIZE) >> 1);
+            if (GZIPPacked.gzip(middle).length > middle.length * MAX_RATIO)
+                return data;
         }
-        return data;
+        const packed = new GZIPPacked(data).toBytes();
+        return packed.length <= data.length * MAX_RATIO ? packed : data;
     }
     static gzip(input) {
-        return Buffer.from(input);
-        // TODO this usually makes it faster for large requests
-        //return Buffer.from(deflate(input, { level: 9, gzip: true }))
+        return (0, zlib_1.gzipSync)(input);
     }
-    static async ungzip(input) {
-        return await new Promise((resolve, reject) => {
+    static ungzip(input) {
+        return new Promise((resolve, reject) => {
             (0, zlib_1.unzip)(input, (error, result) => {
-                if (error) {
+                if (error)
                     reject(error);
-                    return;
-                }
-                resolve(result);
+                else
+                    resolve(result);
             });
         });
     }
-    async toBytes() {
-        const g = Buffer.alloc(4);
-        g.writeUInt32LE(GZIPPacked.CONSTRUCTOR_ID, 0);
-        return Buffer.concat([
-            g,
-            (0, helpers_1.serializeBytes)(await GZIPPacked.gzip(this.data)),
-        ]);
+    async decompressed() {
+        return this.compressed ? GZIPPacked.ungzip(this.data) : this.data;
     }
-    static async read(reader) {
-        const constructor = reader.readInt(false);
-        if (constructor !== GZIPPacked.CONSTRUCTOR_ID) {
-            throw new Error("not equal");
-        }
-        return GZIPPacked.gzip(reader.tgReadBytes());
+    toBytes() {
+        const writer = new Writer_1.Writer();
+        writer.uint(GZIPPacked.CONSTRUCTOR_ID);
+        writer.bytes(GZIPPacked.gzip(this.data));
+        return writer.finish();
     }
-    static async fromReader(reader) {
-        const data = reader.tgReadBytes();
-        return new GZIPPacked(await GZIPPacked.ungzip(data));
+    static read(reader) {
+        if (reader.readInt(false) !== GZIPPacked.CONSTRUCTOR_ID)
+            throw new Error("gzip_packed expected");
+        return reader.tgReadBytes();
+    }
+    static fromReader(reader) {
+        return new GZIPPacked(reader.tgReadBytes(), true);
     }
 }
 exports.GZIPPacked = GZIPPacked;

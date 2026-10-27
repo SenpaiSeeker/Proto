@@ -167,15 +167,13 @@ class CallbackQueryEvent extends common_1.EventCommonSender {
         await this._client.sendMessage(inputChat, params);
     }
     async edit(params) {
-        if (this.query.msgId instanceof tl_1.Api.InputBotInlineMessageID) {
-            return await this._client.editMessage(this.messageId, params).then(async (res) => {
-                await this.answer();
-                return res;
-            });
+        if (this.query.msgId instanceof tl_1.Api.InputBotInlineMessageID ||
+            this.query.msgId instanceof tl_1.Api.InputBotInlineMessageID64) {
+            throw new Error("Editing messages sent via inline mode is not supported yet");
         }
         else {
             const inputChat = await this.getInputChat();
-            return await this._client.editMessage(inputChat, params).then(async (res) => {
+            return await this._client.editMessage(inputChat, { ...params, message: params.message ?? this.messageId }).then(async (res) => {
                 await this.answer();
                 return res;
             });

@@ -9,6 +9,7 @@ import { RPCError } from "./RPCBaseErrors";
 export declare function RPCMessageToError(rpcError: Api.RpcError, request: Api.AnyRequest): RPCError;
 export * from "./Common";
 export * from "./ProxyRejectedError";
+export * from "./FileErrors";
 export * from "./RPCBaseErrors";
 export * from "./RPCErrorList";
 export * from "./aliases";

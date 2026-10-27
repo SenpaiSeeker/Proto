@@ -62,6 +62,9 @@ class StoreSession extends Memory_1.MemorySession {
             }
             await this._authKey.setKey(authKey);
         }
+        const updateState = this.store.get(this.sessionName + "updateState");
+        if (updateState && typeof updateState === "object")
+            this._updateState = updateState;
         const dcId = this.store.get(this.sessionName + "dcId");
         if (dcId) {
             this._dcId = dcId;
@@ -126,6 +129,13 @@ class StoreSession extends Memory_1.MemorySession {
     }
     get authKey() {
         return this._authKey;
+    }
+    setUpdateState(state) {
+        super.setUpdateState(state);
+        if (state)
+            this.store.set(this.sessionName + "updateState", state);
+        else
+            this.store.remove(this.sessionName + "updateState");
     }
     _saveDcAuthKeys() {
         const snapshot = {};

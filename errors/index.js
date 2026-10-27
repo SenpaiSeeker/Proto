@@ -45,6 +45,7 @@ function RPCMessageToError(rpcError, request) {
 }
 __exportStar(require("./Common"), exports);
 __exportStar(require("./ProxyRejectedError"), exports);
+__exportStar(require("./FileErrors"), exports);
 __exportStar(require("./RPCBaseErrors"), exports);
 __exportStar(require("./RPCErrorList"), exports);
 __exportStar(require("./aliases"), exports);

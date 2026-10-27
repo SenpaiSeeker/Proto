@@ -1,5 +1,5 @@
 import bigInt from "big-integer";
-import type { CustomFile } from "./client/uploads";
+import type { CustomFile } from "./client/methods/uploads";
 import type { Entity, EntityLike, MessageIDLike } from "./define";
 import type { EntityCache } from "./entityCache";
 import { Api } from "./tl/api";
@@ -153,7 +153,7 @@ export declare function getInputMedia(media: any, { isPhoto, attributes, forceDo
  * @param fileSize
  * @returns {Number}
  */
-export declare function getAppropriatedPartSize(fileSize: bigInt.BigInteger): 128 | 512 | 256;
+export declare function getAppropriatedPartSize(fileSize: bigInt.BigInteger): 256 | 128 | 512;
 export declare function getPeer(peer: EntityLike | any): any;
 /**
  Convert the given peer into its marked ID by default.

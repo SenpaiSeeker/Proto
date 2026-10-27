@@ -1,59 +1,47 @@
 import type { Logger } from "../../extensions/Logger";
-import type { PacketReader, SocketFactory, SocketInterface } from "../../extensions/SocketInterface";
-import type { ProxyInterface } from "./TCPMTProxy";
-interface ConnectionInterfaceParams {
+import type { PacketReader, SocketFactory, SocketInterface } from "../transport/socket/types";
+export interface ConnectionInterfaceParams {
     ip: string;
     port: number;
     dcId: number;
     loggers: Logger;
-    proxy?: ProxyInterface;
     socket: SocketFactory;
-    keepAliveInterval?: number;
     testServers?: boolean;
+    keepAliveInterval?: number;
 }
-/**
- * Thin transport pipe: codec framing over one socket.
- *
- * There are deliberately no internal loops, queues or buffers here the
- * sender owns exactly one reader and one writer, so `send()` and `recv()`
- * talk to the codec and socket directly. Transport-level failures (including
- * MTProto transport errors such as -404) propagate to the caller as thrown
- * errors from these two methods.
- */
-declare class Connection {
-    PacketCodecClass?: typeof PacketCodec;
-    readonly _ip: string;
-    readonly _port: number;
-    _dcId: number;
-    _log: Logger;
-    _proxy?: ProxyInterface;
-    _keepAliveInterval?: number;
-    _testServers?: boolean;
-    _connected: boolean;
-    protected _codec: any;
-    protected _obfuscation: any;
+export declare abstract class PacketCodec {
+    static readonly tag?: Buffer;
+    static readonly obfuscateTag?: Buffer;
+    abstract encodePacket(data: Buffer): Buffer;
+    abstract readPacket(reader: PacketReader): Promise<Buffer>;
+}
+export type PacketCodecClass = (new () => PacketCodec) & {
+    readonly tag?: Buffer;
+    readonly obfuscateTag?: Buffer;
+};
+export declare class Connection {
+    private readonly params;
+    PacketCodecClass?: PacketCodecClass;
+    readonly ip: string;
+    readonly port: number;
+    readonly dcId: number;
+    readonly testServers: boolean;
+    readonly log: Logger;
     socket: SocketInterface;
-    constructor({ ip, port, dcId, loggers, proxy, socket, keepAliveInterval, testServers, }: ConnectionInterfaceParams);
+    protected codec?: PacketCodec;
+    private connected;
+    private readonly rawSocket;
+    constructor(params: ConnectionInterfaceParams);
+    get usesRandomPadding(): boolean;
+    protected get codecClass(): PacketCodecClass;
     connect(): Promise<void>;
     disconnect(): Promise<void>;
-    send(data: Buffer): Promise<void>;
-    recv(): Promise<any>;
     isConnected(): boolean;
-    _initConn(): Promise<void>;
-    _send(data: Buffer): Promise<void>;
-    _recv(): Promise<any>;
+    send(data: Buffer): Promise<void>;
+    recv(): Promise<Buffer>;
+    clone(): Connection;
+    protected handshake(): Promise<void>;
+    protected write(packet: Buffer): void | Promise<void>;
+    protected get reader(): PacketReader;
     toString(): string;
 }
-declare class ObfuscatedConnection extends Connection {
-    ObfuscatedIO: any;
-    _initConn(): Promise<void>;
-    _send(data: Buffer): Promise<void>;
-    _recv(): Promise<any>;
-}
-declare class PacketCodec {
-    private _conn;
-    constructor(connection: Connection);
-    encodePacket(data: Buffer): void;
-    readPacket(reader: PacketReader): Promise<Buffer>;
-}
-export { Connection, PacketCodec, ObfuscatedConnection };

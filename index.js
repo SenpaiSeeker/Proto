@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.events = exports.client = exports.password = exports.tl = exports.helpers = exports.extensions = exports.sessions = exports.errors = exports.utils = exports.Logger = exports.version = exports.ConnectionWebProxy = exports.WebProxyTransport = exports.WebSocketTransport = exports.MTProxyTransport = exports.HttpProxyTransport = exports.SocksTransport = exports.TcpTransport = exports.Transport = exports.Connection = exports.Keyboard = exports.ReplyKeyboard = exports.InlineKeyboard = exports.Button = exports.TelegramClient = exports.Rich = exports.Api = void 0;
+exports.events = exports.client = exports.password = exports.tl = exports.helpers = exports.extensions = exports.sessions = exports.errors = exports.utils = exports.Logger = exports.version = exports.WebProxyTransport = exports.WebSocketTransport = exports.MTProxyTransport = exports.HttpProxyTransport = exports.SocksTransport = exports.TcpTransport = exports.Transport = exports.ConnectionWebProxy = exports.Connection = exports.Keyboard = exports.ReplyKeyboard = exports.InlineKeyboard = exports.Button = exports.TelegramClient = exports.Rich = exports.Api = void 0;
 var tl_1 = require("./tl");
 Object.defineProperty(exports, "Api", { enumerable: true, get: function () { return tl_1.Api; } });
 exports.Rich = __importStar(require("./richMessage"));
@@ -49,6 +49,8 @@ Object.defineProperty(exports, "ReplyKeyboard", { enumerable: true, get: functio
 Object.defineProperty(exports, "Keyboard", { enumerable: true, get: function () { return keyboard_1.Keyboard; } });
 var network_1 = require("./network");
 Object.defineProperty(exports, "Connection", { enumerable: true, get: function () { return network_1.Connection; } });
+var WebProxy_1 = require("./compat/network/connection/WebProxy");
+Object.defineProperty(exports, "ConnectionWebProxy", { enumerable: true, get: function () { return WebProxy_1.ConnectionWebProxy; } });
 var transport_1 = require("./network/transport");
 Object.defineProperty(exports, "Transport", { enumerable: true, get: function () { return transport_1.Transport; } });
 Object.defineProperty(exports, "TcpTransport", { enumerable: true, get: function () { return transport_1.TcpTransport; } });
@@ -57,8 +59,6 @@ Object.defineProperty(exports, "HttpProxyTransport", { enumerable: true, get: fu
 Object.defineProperty(exports, "MTProxyTransport", { enumerable: true, get: function () { return transport_1.MTProxyTransport; } });
 Object.defineProperty(exports, "WebSocketTransport", { enumerable: true, get: function () { return transport_1.WebSocketTransport; } });
 Object.defineProperty(exports, "WebProxyTransport", { enumerable: true, get: function () { return transport_1.WebProxyTransport; } });
-var WebProxy_1 = require("./network/connection/WebProxy");
-Object.defineProperty(exports, "ConnectionWebProxy", { enumerable: true, get: function () { return WebProxy_1.ConnectionWebProxy; } });
 var Version_1 = require("./Version");
 Object.defineProperty(exports, "version", { enumerable: true, get: function () { return Version_1.version; } });
 var Logger_1 = require("./extensions/Logger");

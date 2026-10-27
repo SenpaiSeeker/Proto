@@ -1,6 +1,13 @@
 import type { AuthKey } from "../crypto/AuthKey";
 import type { EntityLike } from "../define";
 import { Api } from "../tl";
+export interface StoredUpdateState {
+    pts: number;
+    qts: number;
+    date: number;
+    seq: number;
+    channels: Record<string, number>;
+}
 export declare abstract class Session {
     /**
      * Creates a clone of this session file
@@ -73,19 +80,14 @@ export declare abstract class Session {
      * @param value
      */
     /**
-     * Returns the ``UpdateState`` associated with the given `entity_id`.
-     * If the `entity_id` is 0, it should return the ``UpdateState`` for
-     * no specific channel (the "general" state). If no state is known
-     * it should ``return None``.
-     * @param entityId
+     * Returns the update state saved by {@link setUpdateState}, if any.
      */
+    getUpdateState(): StoredUpdateState | undefined;
     /**
-     * Sets the given ``UpdateState`` for the specified `entity_id`, which
-     * should be 0 if the ``UpdateState`` is the "general" state (and not
-     * for any specific channel).
-     * @param entityId
-     * @param state
+     * Persists the update state (common pts/qts/date/seq and per-channel pts)
+     * so the client can fetch updates missed while it was offline.
      */
+    setUpdateState(_state: StoredUpdateState | undefined): void;
     /**
      * Called on client disconnection. Should be used to
      * free any used resources. Can be left empty if none.

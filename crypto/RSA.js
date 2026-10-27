@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports._serverKeys = void 0;
 exports.encrypt = encrypt;
+exports.addServerKey = addServerKey;
+const node_crypto_1 = require("node:crypto");
 const big_integer_1 = __importDefault(require("big-integer"));
 const Helpers_1 = require("../Helpers");
 const PUBLIC_KEYS = [
@@ -55,4 +57,18 @@ async function encrypt(fingerprint, data) {
     const encrypted = (0, Helpers_1.modExp)(payload, (0, big_integer_1.default)(key.e), key.n);
     // rsa module uses transform.int2bytes(encrypted, keylength), easier:
     return (0, Helpers_1.readBufferFromBigInt)(encrypted, 256, false);
+}
+function tlBytes(data) {
+    const header = data.length < 254 ? Buffer.from([data.length]) : Buffer.from([254, data.length & 255, (data.length >> 8) & 255, (data.length >> 16) & 255]);
+    const padding = (4 - ((header.length + data.length) % 4)) % 4;
+    return Buffer.concat([header, data, Buffer.alloc(padding)]);
+}
+async function addServerKey(pem) {
+    const jwk = (0, node_crypto_1.createPublicKey)(pem).export({ format: "jwk" });
+    const n = Buffer.from(jwk.n, "base64url");
+    const e = Buffer.from(jwk.e, "base64url");
+    const digest = await (0, Helpers_1.sha1)(Buffer.concat([tlBytes(n), tlBytes(e)]));
+    const fingerprint = (0, Helpers_1.readBigIntFromBuffer)(digest.subarray(12, 20), true, true);
+    exports._serverKeys.set(fingerprint.toString(), { n: (0, Helpers_1.readBigIntFromBuffer)(n, false), e: (0, Helpers_1.readBigIntFromBuffer)(e, false).toJSNumber() });
+    return fingerprint;
 }

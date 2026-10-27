@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessagePacker = void 0;
-const packing_1 = require("../network/packing");
+const containerPacker_1 = require("../network/mtproto/containerPacker");
 const USE_INVOKE_AFTER_WITH = new Set([
     "messages.SendMessage",
     "messages.SendMedia",
@@ -101,7 +101,7 @@ class MessagePacker {
             return undefined;
         }
         this._queue = this._queue.filter(Boolean);
-        return (0, packing_1.packRequestBatch)(this._state, this._queue, this._log);
+        return (await (0, containerPacker_1.packMessages)(this._state, [this._queue])) ?? null;
     }
 }
 exports.MessagePacker = MessagePacker;

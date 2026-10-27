@@ -34,7 +34,6 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CustomMessage = void 0;
-exports.installMessageBehaviour = installMessageBehaviour;
 const senderGetter_1 = require("./senderGetter");
 const api_1 = require("../api");
 const chatGetter_1 = require("./chatGetter");
@@ -43,7 +42,6 @@ const forward_1 = require("./forward");
 const file_1 = require("./file");
 const rich = __importStar(require("../../richMessage"));
 const Helpers_1 = require("../../Helpers");
-const messages_1 = require("../runtime/patches/messages");
 const messageButton_1 = require("./messageButton");
 /**
  * This custom class aggregates both {@link Api.Message} and {@link Api.MessageService} to ease accessing their members.<br/>
@@ -809,10 +807,3 @@ class CustomMessage extends senderGetter_1.SenderGetter {
     }
 }
 exports.CustomMessage = CustomMessage;
-let installed = false;
-function installMessageBehaviour() {
-    if (installed)
-        return;
-    installed = true;
-    (0, messages_1.patchAll)(CustomMessage);
-}

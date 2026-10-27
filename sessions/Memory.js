@@ -66,7 +66,6 @@ class MemorySession extends Abstract_1.Session {
         this._port = undefined;
         this._takeoutId = undefined;
         this._entities = new Map();
-        this._updateStates = {};
     }
     setDC(dcId, serverAddress, port) {
         dcId |= 0;
@@ -120,6 +119,12 @@ class MemorySession extends Abstract_1.Session {
             this._dcAuthKeys.delete(dcId);
         }
     }
+    getUpdateState() {
+        return this._updateState;
+    }
+    setUpdateState(state) {
+        this._updateState = state;
+    }
     close() { }
     save() { }
     async load() { }
@@ -130,7 +135,7 @@ class MemorySession extends Abstract_1.Session {
         this._port = undefined;
         this._dcAuthKeys.clear();
         this._entities.clear();
-        this._updateStates = {};
+        this._updateState = undefined;
     }
     _entityValuesToRow(id, hash, username, phone, name) {
         // While this is a simple implementation it might be overrode by,

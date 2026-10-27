@@ -2,7 +2,7 @@ import { EntityLike } from "../define";
 import { EventBuilder, EventCommonSender } from "./common";
 import { Api } from "../tl";
 import type { TelegramClient } from "../client/TelegramClient";
-import { EditMessageParams, SendMessageParams } from "../client/messages";
+import { EditMessageParams, SendMessageParams } from "../client/methods/messages";
 export interface NewCallbackQueryInterface {
     chats: EntityLike[];
     func?: {

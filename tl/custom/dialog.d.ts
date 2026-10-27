@@ -3,8 +3,8 @@ import { Api } from "../api";
 import type { Entity } from "../../define";
 import { Draft } from "./draft";
 import bigInt from "big-integer";
-import type { SendMessageParams } from "../../client/messages";
-import type { DeleteHistoryParams } from "../../client/chats";
+import type { SendMessageParams } from "../../client/methods/messages";
+import type { DeleteHistoryParams } from "../../client/methods/chats";
 export declare class Dialog<D extends Api.Dialog | Api.DialogCommunity = Api.Dialog> {
     _client: TelegramClient;
     dialog: D;

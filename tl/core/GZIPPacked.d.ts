@@ -1,15 +1,17 @@
-import type { BinaryReader } from "../../extensions";
+import type { Reader } from "../binary/Reader";
 export declare class GZIPPacked {
-    static CONSTRUCTOR_ID: number;
-    static classType: string;
-    data: Buffer;
-    private CONSTRUCTOR_ID;
-    private classType;
-    constructor(data: Buffer);
-    static gzipIfSmaller(contentRelated: boolean, data: Buffer): Promise<Buffer>;
+    readonly data: Buffer;
+    readonly compressed: boolean;
+    static readonly CONSTRUCTOR_ID = 812830625;
+    static readonly classType = "constructor";
+    readonly CONSTRUCTOR_ID = 812830625;
+    readonly classType = "constructor";
+    constructor(data: Buffer, compressed?: boolean);
+    static gzipIfSmaller(contentRelated: boolean, data: Buffer): Buffer;
     static gzip(input: Buffer): Buffer;
     static ungzip(input: Buffer): Promise<Buffer>;
-    toBytes(): Promise<Buffer>;
-    static read(reader: BinaryReader): Promise<Buffer>;
-    static fromReader(reader: BinaryReader): Promise<GZIPPacked>;
+    decompressed(): Promise<Buffer>;
+    toBytes(): Buffer;
+    static read(reader: Reader): Buffer;
+    static fromReader(reader: Reader): GZIPPacked;
 }

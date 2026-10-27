@@ -1,4 +1,4 @@
-import { Session } from "./Abstract";
+import { Session, type StoredUpdateState } from "./Abstract";
 import type { AuthKey } from "../crypto/AuthKey";
 import { Api } from "../tl";
 import bigInt from "big-integer";
@@ -17,7 +17,7 @@ export declare class MemorySession extends Session {
     protected _port?: number;
     protected _takeoutId: undefined;
     protected _entities: Map<string, any>;
-    protected _updateStates: {};
+    protected _updateState?: StoredUpdateState;
     protected _authKey?: AuthKey;
     /**
      * Auth keys for non-main DCs (file/media). Keyed by DC id. Sharing one
@@ -37,6 +37,8 @@ export declare class MemorySession extends Session {
     set takeoutId(value: undefined);
     getAuthKey(dcId?: number): AuthKey | undefined;
     setAuthKey(authKey?: AuthKey, dcId?: number): void;
+    getUpdateState(): StoredUpdateState | undefined;
+    setUpdateState(state: StoredUpdateState | undefined): void;
     close(): void;
     save(): void;
     load(): Promise<void>;

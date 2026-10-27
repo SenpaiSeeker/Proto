@@ -1,27 +1,30 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpdateContext = exports.ClientUpdates = exports.WAIT_FOR_SKIPPED_TIMEOUT_MS = exports.PtsWaiter = exports.UpdateManager = void 0;
-__exportStar(require("./dispatch"), exports);
-var manager_1 = require("./manager");
-Object.defineProperty(exports, "UpdateManager", { enumerable: true, get: function () { return manager_1.UpdateManager; } });
-var ptsWaiter_1 = require("./ptsWaiter");
-Object.defineProperty(exports, "PtsWaiter", { enumerable: true, get: function () { return ptsWaiter_1.PtsWaiter; } });
-Object.defineProperty(exports, "WAIT_FOR_SKIPPED_TIMEOUT_MS", { enumerable: true, get: function () { return ptsWaiter_1.WAIT_FOR_SKIPPED_TIMEOUT_MS; } });
-var composer_1 = require("./composer");
-Object.defineProperty(exports, "ClientUpdates", { enumerable: true, get: function () { return composer_1.ClientUpdates; } });
-var context_1 = require("./context");
-Object.defineProperty(exports, "UpdateContext", { enumerable: true, get: function () { return context_1.UpdateContext; } });
+exports.UpdateContext = exports.ClientUpdates = exports.WAIT_FOR_SKIPPED_TIMEOUT_MS = exports.PtsWaiter = exports.UpdateManager = exports.UpdateLoop = exports.UpdateDispatcher = exports._updateLoop = exports._stopUpdateLoop = exports._clearUpdateQueue = exports._dispatchUpdate = exports._handleUpdate = exports.StopPropagation = exports.catchUp = exports.listEventHandlers = exports.removeEventHandler = exports.addEventHandler = exports.on = void 0;
+var updates_1 = require("../methods/updates");
+Object.defineProperty(exports, "on", { enumerable: true, get: function () { return updates_1.on; } });
+Object.defineProperty(exports, "addEventHandler", { enumerable: true, get: function () { return updates_1.addEventHandler; } });
+Object.defineProperty(exports, "removeEventHandler", { enumerable: true, get: function () { return updates_1.removeEventHandler; } });
+Object.defineProperty(exports, "listEventHandlers", { enumerable: true, get: function () { return updates_1.listEventHandlers; } });
+Object.defineProperty(exports, "catchUp", { enumerable: true, get: function () { return updates_1.catchUp; } });
+var StopPropagation_1 = require("./StopPropagation");
+Object.defineProperty(exports, "StopPropagation", { enumerable: true, get: function () { return StopPropagation_1.StopPropagation; } });
+var dispatch_1 = require("../../compat/client/updates/dispatch");
+Object.defineProperty(exports, "_handleUpdate", { enumerable: true, get: function () { return dispatch_1._handleUpdate; } });
+Object.defineProperty(exports, "_dispatchUpdate", { enumerable: true, get: function () { return dispatch_1._dispatchUpdate; } });
+Object.defineProperty(exports, "_clearUpdateQueue", { enumerable: true, get: function () { return dispatch_1._clearUpdateQueue; } });
+Object.defineProperty(exports, "_stopUpdateLoop", { enumerable: true, get: function () { return dispatch_1._stopUpdateLoop; } });
+Object.defineProperty(exports, "_updateLoop", { enumerable: true, get: function () { return dispatch_1._updateLoop; } });
+var UpdateDispatcher_1 = require("./UpdateDispatcher");
+Object.defineProperty(exports, "UpdateDispatcher", { enumerable: true, get: function () { return UpdateDispatcher_1.UpdateDispatcher; } });
+var UpdateLoop_1 = require("./UpdateLoop");
+Object.defineProperty(exports, "UpdateLoop", { enumerable: true, get: function () { return UpdateLoop_1.UpdateLoop; } });
+var UpdateManager_1 = require("./UpdateManager");
+Object.defineProperty(exports, "UpdateManager", { enumerable: true, get: function () { return UpdateManager_1.UpdateManager; } });
+var PtsWaiter_1 = require("./PtsWaiter");
+Object.defineProperty(exports, "PtsWaiter", { enumerable: true, get: function () { return PtsWaiter_1.PtsWaiter; } });
+Object.defineProperty(exports, "WAIT_FOR_SKIPPED_TIMEOUT_MS", { enumerable: true, get: function () { return PtsWaiter_1.WAIT_FOR_SKIPPED_TIMEOUT_MS; } });
+var ClientUpdates_1 = require("./ClientUpdates");
+Object.defineProperty(exports, "ClientUpdates", { enumerable: true, get: function () { return ClientUpdates_1.ClientUpdates; } });
+var UpdateContext_1 = require("./UpdateContext");
+Object.defineProperty(exports, "UpdateContext", { enumerable: true, get: function () { return UpdateContext_1.UpdateContext; } });

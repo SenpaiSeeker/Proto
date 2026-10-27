@@ -1,0 +1,65 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.WebSocketSocket = void 0;
+const ByteStream_1 = require("./ByteStream");
+const SEND_HIGH_WATER = 1 << 20;
+class WebSocketSocket {
+    constructor() {
+        this.stream = new ByteStream_1.ByteStream();
+        this.stream.end();
+    }
+    get lastDataAt() {
+        return this.stream.lastDataAt;
+    }
+    async connect(port, ip, testServers = false) {
+        const impl = this.constructor.webSocketImpl ?? WebSocketSocket.webSocketImpl ?? globalThis.WebSocket;
+        if (!impl) {
+            throw new Error("No WebSocket implementation found: run on Node.js 22+ or a browser, " +
+                'or set WebSocketSocket.webSocketImpl (e.g. require("ws").WebSocket)');
+        }
+        const stream = (this.stream = new ByteStream_1.ByteStream());
+        const url = `${port === 443 ? "wss" : "ws"}://${ip}:${port}/apiws${testServers ? "_test" : ""}`;
+        const socket = new impl(url, "binary");
+        socket.binaryType = "arraybuffer";
+        this.socket = socket;
+        socket.onmessage = (ev) => stream.push(typeof ev.data === "string" ? Buffer.from(ev.data) : Buffer.from(new Uint8Array(ev.data)));
+        await new Promise((resolve, reject) => {
+            socket.onopen = () => resolve();
+            socket.onerror = () => {
+                const error = new Error(`WebSocket connection to ${url} failed`);
+                stream.end(error);
+                reject(error);
+            };
+            socket.onclose = () => {
+                const error = new ByteStream_1.SocketClosedError("WebSocket was closed");
+                stream.end(error);
+                reject(error);
+            };
+        });
+    }
+    read(n) {
+        return this.stream.read(n);
+    }
+    readExactly(n) {
+        return this.stream.readExactly(n);
+    }
+    async write(data) {
+        if (this.stream.closed || !this.socket)
+            throw new ByteStream_1.SocketClosedError("WebSocket was closed");
+        const socket = this.socket;
+        socket.send(data);
+        while (!this.stream.closed && this.socket === socket && (socket.bufferedAmount ?? 0) > SEND_HIGH_WATER) {
+            await new Promise((resolve) => setTimeout(resolve, 2));
+        }
+    }
+    async close() {
+        const socket = this.socket;
+        this.socket = undefined;
+        this.stream.end();
+        socket?.close();
+    }
+    toString() {
+        return "WebSocketSocket";
+    }
+}
+exports.WebSocketSocket = WebSocketSocket;

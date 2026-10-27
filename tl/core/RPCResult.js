@@ -1,32 +1,28 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RPCResult = void 0;
-const api_1 = require("../api");
 const GZIPPacked_1 = require("./GZIPPacked");
+const RPC_ERROR_ID = 0x2144ca19;
 class RPCResult {
     static { this.CONSTRUCTOR_ID = 0xf35c6d01; }
     static { this.classType = "constructor"; }
-    constructor(reqMsgId, body, error) {
-        this.CONSTRUCTOR_ID = 0xf35c6d01;
+    constructor(reqMsgId, body, error, packed) {
         this.reqMsgId = reqMsgId;
         this.body = body;
         this.error = error;
+        this.packed = packed;
+        this.CONSTRUCTOR_ID = RPCResult.CONSTRUCTOR_ID;
         this.classType = "constructor";
     }
-    static async fromReader(reader) {
-        const msgId = reader.readLong();
-        const innerCode = reader.readInt(false);
-        if (innerCode === api_1.Api.RpcError.CONSTRUCTOR_ID) {
-            return new RPCResult(msgId, undefined, api_1.Api.RpcError.fromReader(reader));
-        }
-        if (innerCode === GZIPPacked_1.GZIPPacked.CONSTRUCTOR_ID) {
-            return new RPCResult(msgId, (await GZIPPacked_1.GZIPPacked.fromReader(reader)).data);
-        }
+    static fromReader(reader) {
+        const reqMsgId = reader.readLong();
+        const inner = reader.readInt(false);
+        if (inner === GZIPPacked_1.GZIPPacked.CONSTRUCTOR_ID)
+            return new RPCResult(reqMsgId, undefined, undefined, GZIPPacked_1.GZIPPacked.fromReader(reader));
         reader.seek(-4);
-        // This reader.read() will read more than necessary, but it's okay.
-        // We could make use of MessageContainer's length here, but since
-        // it's not necessary we don't need to care about it.
-        return new RPCResult(msgId, reader.read(), undefined);
+        if (inner === RPC_ERROR_ID)
+            return new RPCResult(reqMsgId, undefined, reader.tgReadObject());
+        return new RPCResult(reqMsgId, reader.read());
     }
 }
 exports.RPCResult = RPCResult;

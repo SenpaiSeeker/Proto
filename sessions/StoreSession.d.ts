@@ -1,4 +1,5 @@
 import { MemorySession } from "./Memory";
+import type { StoredUpdateState } from "./Abstract";
 import { AuthKey } from "../crypto/AuthKey";
 import bigInt from "big-integer";
 /**
@@ -37,6 +38,7 @@ export declare class StoreSession extends MemorySession {
     get testServers(): boolean;
     set authKey(value: AuthKey | undefined);
     get authKey(): AuthKey | undefined;
+    setUpdateState(state: StoredUpdateState | undefined): void;
     private _saveDcAuthKeys;
     delete(): void;
     processEntities(tlo: any): void;

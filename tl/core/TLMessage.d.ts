@@ -1,10 +1,10 @@
-import bigInt from "big-integer";
+import type bigInt from "big-integer";
 export declare class TLMessage {
-    static SIZE_OVERHEAD: number;
-    static classType: string;
-    msgId: bigInt.BigInteger;
-    private classType;
-    private seqNo;
-    obj: any;
-    constructor(msgId: bigInt.BigInteger, seqNo: number, obj: any);
+    readonly msgId: bigInt.BigInteger;
+    readonly seqNo: number;
+    obj: unknown;
+    static readonly SIZE_OVERHEAD = 12;
+    static readonly classType = "constructor";
+    readonly classType = "constructor";
+    constructor(msgId: bigInt.BigInteger, seqNo: number, obj: unknown);
 }

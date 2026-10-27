@@ -36,8 +36,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.HttpProxyTransport = void 0;
 const http = __importStar(require("node:http"));
 const https = __importStar(require("node:https"));
-const TCPFull_1 = require("../connection/TCPFull");
-const PromisedNetSockets_1 = require("../../extensions/PromisedNetSockets");
+const Obfuscation_1 = require("../connection/Obfuscation");
+const NetSocket_1 = require("./socket/NetSocket");
 const ProxyRejectedError_1 = require("../../errors/ProxyRejectedError");
 const Transport_1 = require("./Transport");
 function openHttpTunnel(options, ip, port) {
@@ -86,12 +86,12 @@ class HttpProxyTransport extends Transport_1.Transport {
     }
     resolve(connection) {
         const options = this.options;
-        class HttpProxySocket extends PromisedNetSockets_1.PromisedNetSockets {
+        class HttpProxySocket extends NetSocket_1.NetSocket {
             openTunnel(port, ip) {
                 return openHttpTunnel(options, ip, port);
             }
         }
-        return { connection: connection ?? TCPFull_1.ConnectionTCPFull, socket: HttpProxySocket };
+        return { connection: connection ?? Obfuscation_1.ConnectionTCPObfuscated, socket: HttpProxySocket, proxied: true };
     }
 }
 exports.HttpProxyTransport = HttpProxyTransport;
