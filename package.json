@@ -517,7 +517,6 @@
     "devDependencies": {
         "@types/mime": "^2.0.3",
         "@types/node": "^22.15.18",
-        "@types/node-localstorage": "^1.3.0",
         "ts-node": "^9.1.1",
         "typedoc": "^0.28.7",
         "typescript": "^5.8.3"
@@ -526,7 +525,6 @@
         "big-integer": "^1.6.48",
         "cifrante": "0.6.0",
         "mime": "^3.0.0",
-        "node-localstorage": "^2.2.1",
         "socks": "^2.6.2",
         "store2": "^2.13.0"
     }
