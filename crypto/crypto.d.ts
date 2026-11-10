@@ -1,3 +1,4 @@
+import { Buffer } from "../platform";
 export declare class CTR {
     private cipher;
     private decipher;

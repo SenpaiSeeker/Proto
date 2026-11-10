@@ -1,4 +1,5 @@
 import type { Connection } from "../connection/Connection";
+import { Buffer } from "../../platform";
 import { Transport, type ResolvedTransport } from "./Transport";
 export interface MTProxyTransportOptions {
     host: string;

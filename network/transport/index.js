@@ -1,17 +1,18 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.WebProxyTransport = exports.WebSocketTransport = exports.MTProxyTransport = exports.HttpProxyTransport = exports.SocksTransport = exports.TcpTransport = exports.Transport = void 0;
-var Transport_1 = require("./Transport");
-Object.defineProperty(exports, "Transport", { enumerable: true, get: function () { return Transport_1.Transport; } });
-var TcpTransport_1 = require("./TcpTransport");
-Object.defineProperty(exports, "TcpTransport", { enumerable: true, get: function () { return TcpTransport_1.TcpTransport; } });
-var SocksTransport_1 = require("./SocksTransport");
-Object.defineProperty(exports, "SocksTransport", { enumerable: true, get: function () { return SocksTransport_1.SocksTransport; } });
-var HttpProxyTransport_1 = require("./HttpProxyTransport");
-Object.defineProperty(exports, "HttpProxyTransport", { enumerable: true, get: function () { return HttpProxyTransport_1.HttpProxyTransport; } });
-var MTProxyTransport_1 = require("./MTProxyTransport");
-Object.defineProperty(exports, "MTProxyTransport", { enumerable: true, get: function () { return MTProxyTransport_1.MTProxyTransport; } });
-var WebSocketTransport_1 = require("./WebSocketTransport");
-Object.defineProperty(exports, "WebSocketTransport", { enumerable: true, get: function () { return WebSocketTransport_1.WebSocketTransport; } });
-var WebProxyTransport_1 = require("./WebProxyTransport");
-Object.defineProperty(exports, "WebProxyTransport", { enumerable: true, get: function () { return WebProxyTransport_1.WebProxyTransport; } });
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_network_transport_Transport = require("./Transport.js");
+const require_network_transport_TcpTransport = require("./TcpTransport.js");
+const require_network_transport_SocksTransport = require("./SocksTransport.js");
+const require_network_transport_HttpProxyTransport = require("./HttpProxyTransport.js");
+const require_network_transport_MTProxyTransport = require("./MTProxyTransport.js");
+const require_network_transport_WebSocketTransport = require("./WebSocketTransport.js");
+const require_network_transport_WebProxyTransport = require("./WebProxyTransport.js");
+exports.HttpProxyTransport = require_network_transport_HttpProxyTransport.HttpProxyTransport;
+exports.MTProxyTransport = require_network_transport_MTProxyTransport.MTProxyTransport;
+exports.SocksTransport = require_network_transport_SocksTransport.SocksTransport;
+exports.TcpTransport = require_network_transport_TcpTransport.TcpTransport;
+exports.Transport = require_network_transport_Transport.Transport;
+exports.WebProxyTransport = require_network_transport_WebProxyTransport.WebProxyTransport;
+exports.WebSocketTransport = require_network_transport_WebSocketTransport.WebSocketTransport;

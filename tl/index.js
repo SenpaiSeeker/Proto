@@ -1,11 +1,28 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.tlobjects = exports.LAYER = exports.serializeDate = exports.serializeBytes = exports.Api = void 0;
-var api_1 = require("./api");
-Object.defineProperty(exports, "Api", { enumerable: true, get: function () { return api_1.Api; } });
-var serialize_1 = require("./binary/serialize");
-Object.defineProperty(exports, "serializeBytes", { enumerable: true, get: function () { return serialize_1.serializeBytes; } });
-Object.defineProperty(exports, "serializeDate", { enumerable: true, get: function () { return serialize_1.serializeDate; } });
-var Registry_1 = require("./runtime/Registry");
-Object.defineProperty(exports, "LAYER", { enumerable: true, get: function () { return Registry_1.LAYER; } });
-Object.defineProperty(exports, "tlobjects", { enumerable: true, get: function () { return Registry_1.tlobjects; } });
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_runtime = require("../_virtual/_rolldown/runtime.js");
+require("./api.js");
+const require_tl_generated_api = require("./generated/api.js");
+const require_tl_binary_serialize = require("./binary/serialize.js");
+const require_tl_runtime_Registry = require("./runtime/Registry.js");
+// teleproto/tl/index.ts
+var tl_exports = /* @__PURE__ */ require_runtime.__exportAll({
+	Api: () => require_tl_generated_api.Api,
+	LAYER: () => require_tl_runtime_Registry.LAYER,
+	serializeBytes: () => require_tl_binary_serialize.serializeBytes,
+	serializeDate: () => require_tl_binary_serialize.serializeDate,
+	tlobjects: () => require_tl_runtime_Registry.tlobjects
+});
+exports.Api = require_tl_generated_api.Api;
+exports.LAYER = require_tl_runtime_Registry.LAYER;
+exports.serializeBytes = require_tl_binary_serialize.serializeBytes;
+exports.serializeDate = require_tl_binary_serialize.serializeDate;
+Object.defineProperty(exports, "tl_exports", {
+	enumerable: true,
+	get: function() {
+		return tl_exports;
+	}
+});
+exports.tlobjects = require_tl_runtime_Registry.tlobjects;

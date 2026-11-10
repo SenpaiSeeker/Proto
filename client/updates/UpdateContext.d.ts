@@ -10,7 +10,9 @@ export declare class UpdateContext extends EventCommon {
     /** Returns the attached chat or fetches it, sharing concurrent calls within this update. */
     getChat(): Promise<Entity | undefined>;
 }
-/** The original event with a non-enumerable chat context. */
+/** The original event with non-enumerable `context` and `missed`. */
 export type WithUpdateContext<T> = T & {
     readonly context: UpdateContext;
+    /** `true` when the update was not delivered live and was fetched later, after a gap, a reconnect or a restart. */
+    readonly missed: boolean;
 };

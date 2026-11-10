@@ -1,4 +1,5 @@
 import type { BigInteger } from "big-integer";
+import { Buffer } from "../../platform";
 export declare class Writer {
     private buffer;
     private offset;

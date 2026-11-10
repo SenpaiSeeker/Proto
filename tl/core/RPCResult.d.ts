@@ -2,6 +2,7 @@ import type bigInt from "big-integer";
 import type { Api } from "../api";
 import type { Reader } from "../binary/Reader";
 import { GZIPPacked } from "./GZIPPacked";
+import { Buffer } from "../../platform";
 export declare class RPCResult {
     readonly reqMsgId: bigInt.BigInteger;
     readonly body?: Buffer | undefined;

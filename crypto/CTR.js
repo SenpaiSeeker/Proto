@@ -1,26 +1,25 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CTR = void 0;
-const cifrante_1 = require("cifrante");
-const Helpers_1 = require("../Helpers");
-class CTR {
-    constructor(key, iv) {
-        if (!Buffer.isBuffer(key) || !Buffer.isBuffer(iv) || iv.length !== 16) {
-            throw new Error("Key and iv need to be a buffer");
-        }
-        const cipher = cifrante_1.aes.ctr(key);
-        this.state = cipher.create({ iv });
-        cipher.dispose();
-    }
-    encrypt(data) {
-        return (0, Helpers_1.asBuffer)(this.state.update(data));
-    }
-    encryptInPlace(data) {
-        this.state.update(data, data);
-        return data;
-    }
-    dispose() {
-        this.state.dispose();
-    }
-}
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_platform_buffer_index = require("../platform/buffer/index.js");
+const require_platform_crypto_index = require("../platform/crypto/index.js");
+require("../platform/index.js");
+// teleproto/crypto/CTR.ts
+var CTR = class {
+	constructor(key, iv) {
+		if (!require_platform_buffer_index.Buffer.isBuffer(key) || !require_platform_buffer_index.Buffer.isBuffer(iv) || iv.length !== 16) throw new Error("Key and iv need to be a buffer");
+		this.state = require_platform_crypto_index.aesCtr(key, iv);
+	}
+	encrypt(data) {
+		return this.state.update(data);
+	}
+	encryptInPlace(data) {
+		this.state.update(data, data);
+		return data;
+	}
+	dispose() {
+		this.state.dispose();
+	}
+};
 exports.CTR = CTR;

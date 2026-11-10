@@ -1,6 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.StopPropagation = void 0;
-class StopPropagation extends Error {
-}
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+// teleproto/client/updates/StopPropagation.ts
+var StopPropagation = class extends Error {};
 exports.StopPropagation = StopPropagation;

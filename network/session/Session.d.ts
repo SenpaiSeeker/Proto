@@ -1,4 +1,5 @@
 import bigInt from "big-integer";
+import { Buffer } from "../../platform";
 import { AuthKey } from "../../crypto/AuthKey";
 import { Api } from "../../tl";
 import type { Logger } from "../../extensions/Logger";
@@ -69,6 +70,7 @@ export declare class Session implements LinkHost, RouterHost {
     private rtt;
     private jitter;
     private online;
+    private throttledUntil;
     private lastActivityAt;
     constructor(authKey: AuthKey | undefined, opts: SessionOptions);
     get lifecycle(): SenderLifecycle;
@@ -111,7 +113,8 @@ export declare class Session implements LinkHost, RouterHost {
     private setOnline;
     private timers;
     private mayPing;
-    tick(link: SessionLink, now: number): void;
+    tick(link: SessionLink, now: number, stalled: boolean): void;
+    private resume;
     wake(): void;
     ack(msgId: bigInt.BigInteger): void;
     private acksDue;

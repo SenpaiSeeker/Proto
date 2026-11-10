@@ -1,3 +1,4 @@
+import { Buffer } from "../platform";
 export declare class CTR {
     private readonly state;
     constructor(key: Buffer, iv: Buffer);

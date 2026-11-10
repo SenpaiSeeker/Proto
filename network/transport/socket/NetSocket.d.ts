@@ -1,7 +1,7 @@
-import * as net from "node:net";
-import type { SocketInterface } from "./types";
+import { Buffer } from "../../../platform";
+import type { SocketInterface, TransportStream } from "./types";
 export interface Tunnel {
-    socket: net.Socket;
+    socket: TransportStream;
     head?: Buffer;
 }
 export declare class NetSocket implements SocketInterface {
@@ -12,8 +12,8 @@ export declare class NetSocket implements SocketInterface {
     get lastDataAt(): number;
     protected openTunnel(_port: number, _ip: string): Promise<Tunnel | undefined>;
     connect(port: number, ip: string): Promise<void>;
-    read(n: number): Promise<Buffer<ArrayBufferLike>>;
-    readExactly(n: number): Promise<Buffer<ArrayBufferLike>>;
+    read(n: number): Promise<Buffer>;
+    readExactly(n: number): Promise<Buffer>;
     write(data: Buffer): Promise<void>;
     close(): Promise<void>;
     toString(): string;

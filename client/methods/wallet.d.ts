@@ -4,6 +4,7 @@ import { Api } from "../../tl";
 import { RequestIter } from "../../requestIter";
 import { TotalList } from "../../Helpers";
 import type { TelegramClient } from "../TelegramClient";
+import { Buffer } from "../../platform";
 export interface GetWalletAddressesParams {
     addresses?: string[];
     force?: boolean;

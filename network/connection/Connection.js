@@ -1,77 +1,72 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Connection = exports.PacketCodec = void 0;
-class PacketCodec {
-}
-exports.PacketCodec = PacketCodec;
-class Connection {
-    constructor(params) {
-        this.params = params;
-        this.connected = false;
-        this.ip = params.ip;
-        this.port = params.port;
-        this.dcId = params.dcId;
-        this.testServers = !!params.testServers;
-        this.log = params.loggers;
-        this.socket = this.rawSocket = new params.socket(params.keepAliveInterval);
-    }
-    get usesRandomPadding() {
-        return false;
-    }
-    get codecClass() {
-        if (!this.PacketCodecClass)
-            throw new Error(`${this.constructor.name} has no packet codec`);
-        return this.PacketCodecClass;
-    }
-    async connect() {
-        this.codec = new this.codecClass();
-        this.socket = this.rawSocket;
-        try {
-            await this.socket.connect(this.port, this.ip, this.testServers);
-            await this.handshake();
-        }
-        catch (error) {
-            await this.socket.close().catch(() => { });
-            throw error;
-        }
-        this.connected = true;
-    }
-    async disconnect() {
-        this.connected = false;
-        await this.socket.close();
-    }
-    isConnected() {
-        return this.connected;
-    }
-    async send(data) {
-        if (!this.connected || !this.codec)
-            throw new Error("Not connected");
-        await this.write(this.codec.encodePacket(data));
-    }
-    async recv() {
-        if (!this.connected || !this.codec)
-            throw new Error("Not connected");
-        const data = await this.codec.readPacket(this.reader);
-        if (!data.length)
-            throw new Error("No data received");
-        return data;
-    }
-    clone() {
-        return new this.constructor(this.params);
-    }
-    async handshake() {
-        const tag = this.codecClass.tag;
-        if (tag)
-            await this.socket.write(tag);
-    }
-    write(packet) {
-        return this.socket.write(packet);
-    }
-    get reader() {
-        return this.socket;
-    }
-    toString() {
-        return `${this.ip}:${this.port}/${this.constructor.name.replace("Connection", "")}`;
-    }
-}
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+// teleproto/network/connection/Connection.ts
+var PacketCodec = class {};
+var Connection = class {
+	constructor(params) {
+		this.params = params;
+		this.connected = false;
+		this.ip = params.ip;
+		this.port = params.port;
+		this.dcId = params.dcId;
+		this.testServers = !!params.testServers;
+		this.log = params.loggers;
+		this.socket = this.rawSocket = new params.socket(params.keepAliveInterval);
+	}
+	get usesRandomPadding() {
+		return false;
+	}
+	get codecClass() {
+		if (!this.PacketCodecClass) throw new Error(`${this.constructor.name} has no packet codec`);
+		return this.PacketCodecClass;
+	}
+	async connect() {
+		this.codec = new this.codecClass();
+		this.socket = this.rawSocket;
+		try {
+			await this.socket.connect(this.port, this.ip, this.testServers);
+			await this.handshake();
+		} catch (error) {
+			await this.socket.close().catch(() => {});
+			throw error;
+		}
+		this.connected = true;
+	}
+	async disconnect() {
+		this.connected = false;
+		await this.socket.close();
+	}
+	isConnected() {
+		return this.connected;
+	}
+	async send(data) {
+		if (!this.connected || !this.codec) throw new Error("Not connected");
+		await this.write(this.codec.encodePacket(data));
+	}
+	async recv() {
+		if (!this.connected || !this.codec) throw new Error("Not connected");
+		const data = await this.codec.readPacket(this.reader);
+		if (!data.length) throw new Error("No data received");
+		return data;
+	}
+	clone() {
+		return new this.constructor(this.params);
+	}
+	async handshake() {
+		const tag = this.codecClass.tag;
+		if (tag) await this.socket.write(tag);
+	}
+	write(packet) {
+		return this.socket.write(packet);
+	}
+	get reader() {
+		return this.socket;
+	}
+	toString() {
+		return `${this.ip}:${this.port}/${this.constructor.name.replace("Connection", "")}`;
+	}
+};
 exports.Connection = Connection;
+exports.PacketCodec = PacketCodec;

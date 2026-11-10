@@ -2,7 +2,7 @@ import type { TelegramClient } from "../TelegramClient";
 import type { EntityLike, FileLike } from "../../define";
 import type { BigInteger } from "big-integer";
 import { Api } from "../../tl";
-/** Parameters for {@link sendStory}. */
+/** Parameters for {@link TelegramClient.sendStory}. */
 export interface SendStoryParams {
     /** The story photo/video (path, Buffer, uploaded file, or raw {@link Api.TypeInputMedia}). */
     media: FileLike;
@@ -35,7 +35,7 @@ export interface SendStoryParams {
 }
 /** @hidden */
 export declare function sendStory(client: TelegramClient, entity: EntityLike, params: SendStoryParams): Promise<Api.TypeUpdates>;
-/** Parameters for {@link editStory}. Only the fields you set are changed. */
+/** Parameters for {@link TelegramClient.editStory}. Only the fields you set are changed. */
 export interface EditStoryParams {
     /** New story media. */
     media?: FileLike;
@@ -60,7 +60,7 @@ export declare function deleteStories(client: TelegramClient, entity: EntityLike
 export declare function toggleStoriesPinned(client: TelegramClient, entity: EntityLike, ids: number | number[], pinned?: boolean): Promise<number[]>;
 /** @hidden */
 export declare function canSendStory(client: TelegramClient, entity: EntityLike): Promise<Api.stories.CanSendStoryCount>;
-/** Parameters for {@link getAllStories}. */
+/** Parameters for {@link TelegramClient.getAllStories}. */
 export interface GetAllStoriesParams {
     /** Fetch the next chunk, using the `state` from the previous response. */
     next?: boolean;
@@ -75,7 +75,7 @@ export declare function getAllStories(client: TelegramClient, params?: GetAllSto
 export declare function getPeerStories(client: TelegramClient, entity: EntityLike): Promise<Api.stories.PeerStories>;
 /** @hidden */
 export declare function getStoriesByID(client: TelegramClient, entity: EntityLike, ids: number | number[]): Promise<Api.stories.Stories>;
-/** Pagination parameters for {@link getPinnedStories}/{@link getStoriesArchive}. */
+/** Pagination parameters for {@link TelegramClient.getPinnedStories}/{@link TelegramClient.getStoriesArchive}. */
 export interface GetStoriesPageParams {
     /** Only return stories with IDs lower than this one. */
     offsetId?: number;
@@ -90,7 +90,7 @@ export declare function getStoriesArchive(client: TelegramClient, entity: Entity
 export declare function readStories(client: TelegramClient, entity: EntityLike, maxId?: number): Promise<number[]>;
 /** @hidden */
 export declare function incrementStoryViews(client: TelegramClient, entity: EntityLike, ids: number | number[]): Promise<boolean>;
-/** Parameters for {@link getStoryViewsList}. */
+/** Parameters for {@link TelegramClient.getStoryViewsList}. */
 export interface GetStoryViewsListParams {
     /** Only fetch views from your contacts. */
     justContacts?: boolean;

@@ -1,4 +1,5 @@
 import { Api } from "../../tl";
+import { Buffer } from "../../platform";
 export declare class CdnHashMismatchError extends Error {
     constructor(offset: number);
 }

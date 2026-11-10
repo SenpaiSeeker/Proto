@@ -1,5 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.MTProtoPlainSender = void 0;
-var PlainSender_1 = require("../../network/mtproto/PlainSender");
-Object.defineProperty(exports, "MTProtoPlainSender", { enumerable: true, get: function () { return PlainSender_1.PlainSender; } });
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_network_mtproto_PlainSender = require("../../network/mtproto/PlainSender.js");
+exports.MTProtoPlainSender = require_network_mtproto_PlainSender.PlainSender;

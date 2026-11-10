@@ -1,4 +1,5 @@
 import type { Reader } from "../binary/Reader";
+import { Buffer } from "../../platform";
 export declare class GZIPPacked {
     readonly data: Buffer;
     readonly compressed: boolean;

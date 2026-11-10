@@ -5,6 +5,8 @@ import { TotalList } from "../../Helpers";
 import type { TelegramClient } from "../TelegramClient";
 import { BigInteger } from "big-integer";
 import { SendFileInterface } from "./uploads";
+import { Buffer } from "../../platform";
+import { RichContent } from "../../tl/custom/RichContent";
 interface MessageIterParams {
     entity: EntityLike;
     offsetId: number;
@@ -204,8 +206,8 @@ export interface SendMessageParams {
     /** Suggested-post metadata for direct-messages channels. */
     suggestedPost?: Api.TypeSuggestedPost;
     /** Rich message content (Layer 228): tables, headings, lists, inline media.<br/>
-     * Build it with the `Rich` helpers — `Rich.markdown("# hi")`, `Rich.html("<h1>hi</h1>")` (server-side parsing), or `Rich.blocks([...])`. Only for plain text messages. */
-    richMessage?: Api.TypeInputRichMessage;
+     * Build it with {@link RichContent}, or with the `Rich` helpers — `Rich.markdown("# hi")`, `Rich.html("<h1>hi</h1>")` (server-side parsing), or `Rich.blocks([...])`. Only for plain text messages. */
+    richMessage?: Api.TypeInputRichMessage | RichContent;
 }
 /** interface used for forwarding messages */
 export interface ForwardMessagesParams {
@@ -281,8 +283,8 @@ export interface EditMessageParams {
     scheduleRepeatPeriod?: number;
     /** If editing a message inside a quick-reply shortcut, the ID of that shortcut. */
     quickReplyShortcutId?: number;
-    /** New rich message content (Layer 228 page-block tree). */
-    richMessage?: Api.TypeInputRichMessage;
+    /** New rich message content (Layer 228 page-block tree), or a {@link RichContent}. */
+    richMessage?: Api.TypeInputRichMessage | RichContent;
 }
 /** Interface for editing messages */
 export interface UpdatePinMessageParams {
@@ -445,8 +447,8 @@ export interface SaveDraftParams {
     effect?: BigInteger;
     /** Suggested-post metadata for direct-messages channels. */
     suggestedPost?: Api.TypeSuggestedPost;
-    /** Rich message content (Layer 228). Build it with the `Rich` helpers (`Rich.markdown`, `Rich.html`, `Rich.blocks`). */
-    richMessage?: Api.TypeInputRichMessage;
+    /** Rich message content (Layer 228). Build it with {@link RichContent} or the `Rich` helpers (`Rich.markdown`, `Rich.html`, `Rich.blocks`). */
+    richMessage?: Api.TypeInputRichMessage | RichContent;
 }
 /** @hidden */
 export declare function saveDraft(client: TelegramClient, entity: EntityLike, params?: SaveDraftParams): Promise<boolean>;

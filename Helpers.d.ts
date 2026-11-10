@@ -1,6 +1,7 @@
 import bigInt from "big-integer";
 import type { EntityLike } from "./define";
 import type { Api } from "./tl";
+import { Buffer } from "./platform";
 export declare function asBuffer(bytes: Uint8Array): Buffer;
 /**
  * converts a buffer to big int
@@ -66,11 +67,7 @@ export declare function bigIntMod(n: bigInt.BigInteger, m: bigInt.BigInteger): b
  */
 export declare function generateRandomBytes(count: number): Buffer;
 /**
- * Calculate the key based on Telegram guidelines, specifying whether it's the client or not
- * @param sharedKey
- * @param msgKey
- * @param client
- * @returns {{iv: Buffer, key: Buffer}}
+ * Trims whitespace from both ends of the text and shifts the entities to match.
  */
 export declare function stripText(text: string, entities: Api.TypeMessageEntity[]): string;
 /**

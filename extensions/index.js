@@ -1,17 +1,35 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.AsyncQueue = exports.MessagePacker = exports.PromisedWebSockets = exports.PromisedNetSockets = exports.BinaryReader = exports.BinaryWriter = exports.Logger = void 0;
-var Logger_1 = require("./Logger");
-Object.defineProperty(exports, "Logger", { enumerable: true, get: function () { return Logger_1.Logger; } });
-var Writer_1 = require("../tl/binary/Writer");
-Object.defineProperty(exports, "BinaryWriter", { enumerable: true, get: function () { return Writer_1.Writer; } });
-var Reader_1 = require("../tl/binary/Reader");
-Object.defineProperty(exports, "BinaryReader", { enumerable: true, get: function () { return Reader_1.Reader; } });
-var PromisedNetSockets_1 = require("../compat/extensions/PromisedNetSockets");
-Object.defineProperty(exports, "PromisedNetSockets", { enumerable: true, get: function () { return PromisedNetSockets_1.PromisedNetSockets; } });
-var PromisedWebSockets_1 = require("../compat/extensions/PromisedWebSockets");
-Object.defineProperty(exports, "PromisedWebSockets", { enumerable: true, get: function () { return PromisedWebSockets_1.PromisedWebSockets; } });
-var MessagePacker_1 = require("./MessagePacker");
-Object.defineProperty(exports, "MessagePacker", { enumerable: true, get: function () { return MessagePacker_1.MessagePacker; } });
-var AsyncQueue_1 = require("./AsyncQueue");
-Object.defineProperty(exports, "AsyncQueue", { enumerable: true, get: function () { return AsyncQueue_1.AsyncQueue; } });
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_runtime = require("../_virtual/_rolldown/runtime.js");
+const require_extensions_Logger = require("./Logger.js");
+const require_tl_binary_Writer = require("../tl/binary/Writer.js");
+const require_tl_binary_Reader = require("../tl/binary/Reader.js");
+const require_compat_extensions_PromisedNetSockets = require("../compat/extensions/PromisedNetSockets.js");
+const require_compat_extensions_PromisedWebSockets = require("../compat/extensions/PromisedWebSockets.js");
+const require_extensions_MessagePacker = require("./MessagePacker.js");
+const require_extensions_AsyncQueue = require("./AsyncQueue.js");
+// teleproto/extensions/index.ts
+var extensions_exports = /* @__PURE__ */ require_runtime.__exportAll({
+	AsyncQueue: () => require_extensions_AsyncQueue.AsyncQueue,
+	BinaryReader: () => require_tl_binary_Reader.Reader,
+	BinaryWriter: () => require_tl_binary_Writer.Writer,
+	Logger: () => require_extensions_Logger.Logger,
+	MessagePacker: () => require_extensions_MessagePacker.MessagePacker,
+	PromisedNetSockets: () => require_compat_extensions_PromisedNetSockets.PromisedNetSockets,
+	PromisedWebSockets: () => require_compat_extensions_PromisedWebSockets.PromisedWebSockets
+});
+exports.AsyncQueue = require_extensions_AsyncQueue.AsyncQueue;
+exports.BinaryReader = require_tl_binary_Reader.Reader;
+exports.BinaryWriter = require_tl_binary_Writer.Writer;
+exports.Logger = require_extensions_Logger.Logger;
+exports.MessagePacker = require_extensions_MessagePacker.MessagePacker;
+exports.PromisedNetSockets = require_compat_extensions_PromisedNetSockets.PromisedNetSockets;
+exports.PromisedWebSockets = require_compat_extensions_PromisedWebSockets.PromisedWebSockets;
+Object.defineProperty(exports, "extensions_exports", {
+	enumerable: true,
+	get: function() {
+		return extensions_exports;
+	}
+});

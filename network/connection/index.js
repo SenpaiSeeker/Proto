@@ -1,23 +1,24 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConnectionWebProxy = exports.ConnectionTCPObfuscated = exports.ObfuscatedConnection = exports.ObfuscatedIO = exports.ConnectionTCPPaddedIntermediate = exports.ConnectionTCPIntermediate = exports.PaddedIntermediatePacketCodec = exports.IntermediatePacketCodec = exports.ConnectionTCPFull = exports.FullPacketCodec = exports.ConnectionTCPAbridged = exports.AbridgedPacketCodec = exports.PacketCodec = exports.Connection = void 0;
-var Connection_1 = require("./Connection");
-Object.defineProperty(exports, "Connection", { enumerable: true, get: function () { return Connection_1.Connection; } });
-Object.defineProperty(exports, "PacketCodec", { enumerable: true, get: function () { return Connection_1.PacketCodec; } });
-var AbridgedCodec_1 = require("./AbridgedCodec");
-Object.defineProperty(exports, "AbridgedPacketCodec", { enumerable: true, get: function () { return AbridgedCodec_1.AbridgedPacketCodec; } });
-Object.defineProperty(exports, "ConnectionTCPAbridged", { enumerable: true, get: function () { return AbridgedCodec_1.ConnectionTCPAbridged; } });
-var FullCodec_1 = require("./FullCodec");
-Object.defineProperty(exports, "FullPacketCodec", { enumerable: true, get: function () { return FullCodec_1.FullPacketCodec; } });
-Object.defineProperty(exports, "ConnectionTCPFull", { enumerable: true, get: function () { return FullCodec_1.ConnectionTCPFull; } });
-var IntermediateCodec_1 = require("./IntermediateCodec");
-Object.defineProperty(exports, "IntermediatePacketCodec", { enumerable: true, get: function () { return IntermediateCodec_1.IntermediatePacketCodec; } });
-Object.defineProperty(exports, "PaddedIntermediatePacketCodec", { enumerable: true, get: function () { return IntermediateCodec_1.PaddedIntermediatePacketCodec; } });
-Object.defineProperty(exports, "ConnectionTCPIntermediate", { enumerable: true, get: function () { return IntermediateCodec_1.ConnectionTCPIntermediate; } });
-Object.defineProperty(exports, "ConnectionTCPPaddedIntermediate", { enumerable: true, get: function () { return IntermediateCodec_1.ConnectionTCPPaddedIntermediate; } });
-var Obfuscation_1 = require("./Obfuscation");
-Object.defineProperty(exports, "ObfuscatedIO", { enumerable: true, get: function () { return Obfuscation_1.ObfuscatedIO; } });
-Object.defineProperty(exports, "ObfuscatedConnection", { enumerable: true, get: function () { return Obfuscation_1.ObfuscatedConnection; } });
-Object.defineProperty(exports, "ConnectionTCPObfuscated", { enumerable: true, get: function () { return Obfuscation_1.ConnectionTCPObfuscated; } });
-var WebProxy_1 = require("../../compat/network/connection/WebProxy");
-Object.defineProperty(exports, "ConnectionWebProxy", { enumerable: true, get: function () { return WebProxy_1.ConnectionWebProxy; } });
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_network_connection_Connection = require("./Connection.js");
+const require_network_connection_AbridgedCodec = require("./AbridgedCodec.js");
+const require_network_connection_FullCodec = require("./FullCodec.js");
+const require_network_connection_IntermediateCodec = require("./IntermediateCodec.js");
+const require_network_connection_Obfuscation = require("./Obfuscation.js");
+const require_compat_network_connection_WebProxy = require("../../compat/network/connection/WebProxy.js");
+exports.AbridgedPacketCodec = require_network_connection_AbridgedCodec.AbridgedPacketCodec;
+exports.Connection = require_network_connection_Connection.Connection;
+exports.ConnectionTCPAbridged = require_network_connection_AbridgedCodec.ConnectionTCPAbridged;
+exports.ConnectionTCPFull = require_network_connection_FullCodec.ConnectionTCPFull;
+exports.ConnectionTCPIntermediate = require_network_connection_IntermediateCodec.ConnectionTCPIntermediate;
+exports.ConnectionTCPObfuscated = require_network_connection_Obfuscation.ConnectionTCPObfuscated;
+exports.ConnectionTCPPaddedIntermediate = require_network_connection_IntermediateCodec.ConnectionTCPPaddedIntermediate;
+exports.ConnectionWebProxy = require_compat_network_connection_WebProxy.ConnectionWebProxy;
+exports.FullPacketCodec = require_network_connection_FullCodec.FullPacketCodec;
+exports.IntermediatePacketCodec = require_network_connection_IntermediateCodec.IntermediatePacketCodec;
+exports.ObfuscatedConnection = require_network_connection_Obfuscation.ObfuscatedConnection;
+exports.ObfuscatedIO = require_network_connection_Obfuscation.ObfuscatedIO;
+exports.PacketCodec = require_network_connection_Connection.PacketCodec;
+exports.PaddedIntermediatePacketCodec = require_network_connection_IntermediateCodec.PaddedIntermediatePacketCodec;

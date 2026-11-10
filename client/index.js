@@ -1,68 +1,198 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
 });
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.wallet = exports.users = exports.uploads = exports.updates = exports.tgClient = exports.telegramBaseClient = exports.message = exports.messageParse = exports.downloads = exports.dialogs = exports.communities = exports.chats = exports.buttons = exports.bots = exports.auth = exports.twoFA = void 0;
-const twoFA = __importStar(require("./methods/2fa"));
-exports.twoFA = twoFA;
-const auth = __importStar(require("./methods/auth"));
-exports.auth = auth;
-const bots = __importStar(require("./methods/bots"));
-exports.bots = bots;
-const buttons = __importStar(require("./methods/buttons"));
-exports.buttons = buttons;
-const chats = __importStar(require("./methods/chats"));
-exports.chats = chats;
-const communities = __importStar(require("./methods/communities"));
-exports.communities = communities;
-const dialogs = __importStar(require("./methods/dialogs"));
-exports.dialogs = dialogs;
-const downloads = __importStar(require("./methods/downloads"));
-exports.downloads = downloads;
-const messageParse = __importStar(require("./methods/messageParse"));
-exports.messageParse = messageParse;
-const message = __importStar(require("./methods/messages"));
-exports.message = message;
-const telegramBaseClient = __importStar(require("./TelegramBaseClient"));
-exports.telegramBaseClient = telegramBaseClient;
-const tgClient = __importStar(require("./TelegramClient"));
-exports.tgClient = tgClient;
-const updates = __importStar(require("./updates"));
-exports.updates = updates;
-const uploads = __importStar(require("./methods/uploads"));
-exports.uploads = uploads;
-const users = __importStar(require("./methods/users"));
-exports.users = users;
-const wallet = __importStar(require("./methods/wallet"));
-exports.wallet = wallet;
+const require_runtime = require("../_virtual/_rolldown/runtime.js");
+const require_client_methods_2fa = require("./methods/2fa.js");
+const require_client_methods_account = require("./methods/account.js");
+const require_client_methods_auth = require("./methods/auth.js");
+const require_client_methods_bots = require("./methods/bots.js");
+const require_client_methods_buttons = require("./methods/buttons.js");
+const require_client_methods_chats = require("./methods/chats.js");
+const require_client_methods_communities = require("./methods/communities.js");
+const require_client_methods_contacts = require("./methods/contacts.js");
+const require_client_methods_dialogs = require("./methods/dialogs.js");
+const require_client_methods_downloads = require("./methods/downloads.js");
+const require_client_methods_folders = require("./methods/folders.js");
+const require_client_methods_forums = require("./methods/forums.js");
+const require_client_methods_inviteLinks = require("./methods/inviteLinks.js");
+const require_client_methods_messageParse = require("./methods/messageParse.js");
+const require_client_methods_messages = require("./methods/messages.js");
+const require_client_methods_stickers = require("./methods/stickers.js");
+const require_client_methods_stories = require("./methods/stories.js");
+const require_client_TelegramBaseClient = require("./TelegramBaseClient.js");
+const require_client_TelegramClient = require("./TelegramClient.js");
+const require_client_updates_index = require("./updates/index.js");
+const require_client_methods_uploads = require("./methods/uploads.js");
+const require_client_methods_users = require("./methods/users.js");
+const require_client_methods_wallet = require("./methods/wallet.js");
+// teleproto/client/index.ts
+var client_exports = /* @__PURE__ */ require_runtime.__exportAll({
+	account: () => require_client_methods_account.account_exports,
+	auth: () => require_client_methods_auth.auth_exports,
+	bots: () => require_client_methods_bots.bots_exports,
+	buttons: () => require_client_methods_buttons.buttons_exports,
+	chats: () => require_client_methods_chats.chats_exports,
+	communities: () => require_client_methods_communities.communities_exports,
+	contacts: () => require_client_methods_contacts.contacts_exports,
+	dialogs: () => require_client_methods_dialogs.dialogs_exports,
+	downloads: () => require_client_methods_downloads.downloads_exports,
+	folders: () => require_client_methods_folders.folders_exports,
+	forums: () => require_client_methods_forums.forums_exports,
+	inviteLinks: () => require_client_methods_inviteLinks.inviteLinks_exports,
+	message: () => require_client_methods_messages.messages_exports,
+	messageParse: () => require_client_methods_messageParse.messageParse_exports,
+	stickers: () => require_client_methods_stickers.stickers_exports,
+	stories: () => require_client_methods_stories.stories_exports,
+	telegramBaseClient: () => require_client_TelegramBaseClient.TelegramBaseClient_exports,
+	tgClient: () => require_client_TelegramClient.TelegramClient_exports,
+	twoFA: () => require_client_methods_2fa._2fa_exports,
+	updates: () => require_client_updates_index.updates_exports,
+	uploads: () => require_client_methods_uploads.uploads_exports,
+	users: () => require_client_methods_users.users_exports,
+	wallet: () => require_client_methods_wallet.wallet_exports
+});
+Object.defineProperty(exports, "account", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_account.account_exports;
+	}
+});
+Object.defineProperty(exports, "auth", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_auth.auth_exports;
+	}
+});
+Object.defineProperty(exports, "bots", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_bots.bots_exports;
+	}
+});
+Object.defineProperty(exports, "buttons", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_buttons.buttons_exports;
+	}
+});
+Object.defineProperty(exports, "chats", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_chats.chats_exports;
+	}
+});
+Object.defineProperty(exports, "client_exports", {
+	enumerable: true,
+	get: function() {
+		return client_exports;
+	}
+});
+Object.defineProperty(exports, "communities", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_communities.communities_exports;
+	}
+});
+Object.defineProperty(exports, "contacts", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_contacts.contacts_exports;
+	}
+});
+Object.defineProperty(exports, "dialogs", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_dialogs.dialogs_exports;
+	}
+});
+Object.defineProperty(exports, "downloads", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_downloads.downloads_exports;
+	}
+});
+Object.defineProperty(exports, "folders", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_folders.folders_exports;
+	}
+});
+Object.defineProperty(exports, "forums", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_forums.forums_exports;
+	}
+});
+Object.defineProperty(exports, "inviteLinks", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_inviteLinks.inviteLinks_exports;
+	}
+});
+Object.defineProperty(exports, "message", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_messages.messages_exports;
+	}
+});
+Object.defineProperty(exports, "messageParse", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_messageParse.messageParse_exports;
+	}
+});
+Object.defineProperty(exports, "stickers", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_stickers.stickers_exports;
+	}
+});
+Object.defineProperty(exports, "stories", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_stories.stories_exports;
+	}
+});
+Object.defineProperty(exports, "telegramBaseClient", {
+	enumerable: true,
+	get: function() {
+		return require_client_TelegramBaseClient.TelegramBaseClient_exports;
+	}
+});
+Object.defineProperty(exports, "tgClient", {
+	enumerable: true,
+	get: function() {
+		return require_client_TelegramClient.TelegramClient_exports;
+	}
+});
+Object.defineProperty(exports, "twoFA", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_2fa._2fa_exports;
+	}
+});
+Object.defineProperty(exports, "updates", {
+	enumerable: true,
+	get: function() {
+		return require_client_updates_index.updates_exports;
+	}
+});
+Object.defineProperty(exports, "uploads", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_uploads.uploads_exports;
+	}
+});
+Object.defineProperty(exports, "users", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_users.users_exports;
+	}
+});
+Object.defineProperty(exports, "wallet", {
+	enumerable: true,
+	get: function() {
+		return require_client_methods_wallet.wallet_exports;
+	}
+});

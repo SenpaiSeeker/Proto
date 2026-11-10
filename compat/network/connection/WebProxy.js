@@ -1,10 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConnectionWebProxy = exports.createWebProxySocket = void 0;
-const TCPMTProxy_1 = require("./TCPMTProxy");
-var WebProxyTransport_1 = require("../../../network/transport/WebProxyTransport");
-Object.defineProperty(exports, "createWebProxySocket", { enumerable: true, get: function () { return WebProxyTransport_1.createWebProxySocket; } });
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_compat_network_connection_TCPMTProxy = require("./TCPMTProxy.js");
+const require_network_transport_WebProxyTransport = require("../../../network/transport/WebProxyTransport.js");
+// teleproto/compat/network/connection/WebProxy.ts
 /** @deprecated The WEB proxy picks its own framing: pass `proxy.WEB` or a `WebProxyTransport` without `connection`. */
-class ConnectionWebProxy extends TCPMTProxy_1.TCPMTProxy {
-}
+var ConnectionWebProxy = class extends require_compat_network_connection_TCPMTProxy.TCPMTProxy {};
 exports.ConnectionWebProxy = ConnectionWebProxy;
+exports.createWebProxySocket = require_network_transport_WebProxyTransport.createWebProxySocket;

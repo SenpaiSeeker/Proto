@@ -1,5 +1,6 @@
 import bigInt from "big-integer";
 import type { AuthKey } from "../../crypto/AuthKey";
+import { Buffer } from "../../platform";
 import { TLMessage } from "../../tl/core";
 import type { Writer } from "../../tl/binary/Writer";
 import type { Logger } from "../../extensions/Logger";

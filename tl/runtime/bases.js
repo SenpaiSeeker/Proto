@@ -1,9 +1,13 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.tlBases = void 0;
-const customMessage = () => require("../custom/message").CustomMessage;
-exports.tlBases = {
-    Message: customMessage,
-    MessageService: customMessage,
-    MessageEmpty: customMessage,
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_tl_custom_message = require("../custom/message.js");
+// teleproto/tl/runtime/bases.ts
+const customMessage = () => require_tl_custom_message.CustomMessage;
+const tlBases = {
+	Message: customMessage,
+	MessageService: customMessage,
+	MessageEmpty: customMessage
 };
+exports.tlBases = tlBases;

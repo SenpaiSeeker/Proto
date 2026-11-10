@@ -1,20 +1,9 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ObfuscatedConnection = void 0;
-__exportStar(require("../../../network/connection/Connection"), exports);
-var Obfuscation_1 = require("../../../network/connection/Obfuscation");
-Object.defineProperty(exports, "ObfuscatedConnection", { enumerable: true, get: function () { return Obfuscation_1.ObfuscatedConnection; } });
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_network_connection_Connection = require("../../../network/connection/Connection.js");
+const require_network_connection_Obfuscation = require("../../../network/connection/Obfuscation.js");
+exports.Connection = require_network_connection_Connection.Connection;
+exports.ObfuscatedConnection = require_network_connection_Obfuscation.ObfuscatedConnection;
+exports.PacketCodec = require_network_connection_Connection.PacketCodec;

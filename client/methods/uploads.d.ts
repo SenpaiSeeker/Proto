@@ -1,5 +1,6 @@
 import { Api } from "../../tl";
 import type { TelegramClient } from "../TelegramClient";
+import { Buffer } from "../../platform";
 import { EntityLike, FileLike, MarkupLike, MessageIDLike } from "../../define";
 import { BigInteger } from "big-integer";
 interface OnProgress {

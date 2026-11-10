@@ -1,5 +1,6 @@
 import type { ProxyInterface } from "../../client/TelegramBaseClient";
 import type { PacketReader } from "../../network/transport/socket/types";
+import { Buffer } from "../../platform";
 export type { PacketReader };
 /** @deprecated Implement a {@link Transport} instead. */
 export interface SocketInterface extends PacketReader {

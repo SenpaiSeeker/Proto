@@ -10,6 +10,7 @@ export declare class ChannelScheduler {
     private running;
     private nextStartAt;
     private pausedUntil;
+    private gap;
     constructor(interval: number, concurrency: number);
     start(): void;
     stop(): void;
@@ -19,6 +20,7 @@ export declare class ChannelScheduler {
         pendingRequests: number;
         activeRequests: number;
         pausedUntil: number | undefined;
+        requestInterval: number;
     };
     schedule<T>(channelId: string, run: () => Promise<T>): Promise<T>;
     private pump;

@@ -3,7 +3,7 @@ import type { EntityLike, FileLike } from "../../define";
 import type { BigInteger } from "big-integer";
 import { TotalList } from "../../Helpers";
 import { Api } from "../../tl";
-/** Parameters for {@link updateProfile}. Only the fields you set are changed. */
+/** Parameters for {@link TelegramClient.updateProfile}. Only the fields you set are changed. */
 export interface UpdateProfileParams {
     /** New first name. */
     firstName?: string;
@@ -18,7 +18,7 @@ export declare function updateProfile(client: TelegramClient, params: UpdateProf
 export declare function updateUsername(client: TelegramClient, username: string): Promise<Api.TypeUser>;
 /** @hidden */
 export declare function updateStatus(client: TelegramClient, online?: boolean): Promise<boolean>;
-/** Parameters for {@link uploadProfilePhoto}. */
+/** Parameters for {@link TelegramClient.uploadProfilePhoto}. */
 export interface UploadProfilePhotoParams {
     /** The photo to upload (path, Buffer, File, or an uploaded {@link Api.TypeInputFile}). */
     file?: FileLike;
@@ -42,7 +42,7 @@ export declare function updateProfilePhoto(client: TelegramClient, photo: Api.Ty
 }): Promise<Api.photos.Photo>;
 /** @hidden */
 export declare function deleteProfilePhotos(client: TelegramClient, photos: (Api.TypeInputPhoto | Api.TypePhoto)[]): Promise<BigInteger[]>;
-/** Parameters for {@link getUserPhotos}. */
+/** Parameters for {@link TelegramClient.getUserPhotos}. */
 export interface GetUserPhotosParams {
     /** Number of photos to skip. */
     offset?: number;
@@ -56,7 +56,7 @@ export declare function getUserPhotos(client: TelegramClient, entity: EntityLike
 /** @hidden */
 export declare function getAuthorizations(client: TelegramClient): Promise<Api.account.Authorizations>;
 /**
- * Terminates a session from {@link getAuthorizations}. Pass no hash (or zero)
+ * Terminates a session from {@link TelegramClient.getAuthorizations}. Pass no hash (or zero)
  * to terminate ALL other sessions.
  * @hidden
  */
@@ -67,7 +67,7 @@ export declare function getPrivacy(client: TelegramClient, key: Api.TypeInputPri
 export declare function setPrivacy(client: TelegramClient, key: Api.TypeInputPrivacyKey, rules: Api.TypeInputPrivacyRule[]): Promise<Api.account.PrivacyRules>;
 /** @hidden */
 export declare function getNotifySettings(client: TelegramClient, entity: EntityLike | Api.TypeInputNotifyPeer): Promise<Api.TypePeerNotifySettings>;
-/** New notification settings for {@link updateNotifySettings}. Only the fields you set are changed. */
+/** New notification settings for {@link TelegramClient.updateNotifySettings}. Only the fields you set are changed. */
 export interface UpdateNotifySettingsParams {
     /** Whether to show message previews in notifications. */
     showPreviews?: boolean;

@@ -1,5 +1,6 @@
 import type { Connection } from "../connection";
 import type { RequestState } from "../mtproto/RequestState";
+import { Buffer } from "../../platform";
 export type LinkCloseReason = "lost" | "bad-key" | "flood" | "restart";
 export interface LinkClose {
     reason: LinkCloseReason;
@@ -14,7 +15,7 @@ export interface LinkHost {
     onSent(link: SessionLink, packet: OutgoingPacket): void;
     onSendFailed(packet: OutgoingPacket): void;
     receive(link: SessionLink, body: Buffer): Promise<void>;
-    tick(link: SessionLink, now: number): void;
+    tick(link: SessionLink, now: number, stalled: boolean): void;
     wake(): void;
 }
 export declare class SessionLink {
@@ -28,6 +29,7 @@ export declare class SessionLink {
     private readMark;
     private markedAt;
     private replyDeadline;
+    private lastTickAt;
     private timer?;
     private closeInfo?;
     private resolveClosed;

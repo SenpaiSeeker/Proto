@@ -1,2 +1,3 @@
-declare const _exports: any;
-export = _exports;
+export const layer: any;
+export const strings: any;
+export const definitions: any;

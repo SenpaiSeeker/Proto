@@ -8,6 +8,7 @@ import { EditMessageParams, ForwardMessagesParams, MarkAsReadParams, SendMessage
 import { DownloadMediaInterface } from "../../client/methods/downloads";
 import { BigInteger } from "big-integer";
 import { MessageButton } from "./messageButton";
+import { Buffer } from "../../platform";
 interface MessageBaseInterface {
     id: any;
     peerId?: any;
@@ -143,6 +144,10 @@ export interface ButtonClickParam {
      `PASSWORD_HASH_INVALID` is raised.
      */
     password?: string;
+}
+export interface CustomMessage {
+    /** @hidden */
+    getBytes(): Buffer;
 }
 /**
  * This custom class aggregates both {@link Api.Message} and {@link Api.MessageService} to ease accessing their members.<br/>
@@ -342,8 +347,6 @@ export declare class CustomMessage extends SenderGetter {
     _sender?: any;
     /** @hidden */
     _entities?: Map<string, Entity>;
-    /** @hidden */
-    getBytes(): Buffer;
     originalArgs: any;
     patternMatch?: RegExpMatchArray;
     init({ id, peerId, date, out, mentioned, mediaUnread, silent, post, fromId, replyTo, message, fwdFrom, viaBotId, media, replyMarkup, entities, views, editDate, postAuthor, groupedId, fromScheduled, legacy, editHide, pinned, restrictionReason, forwards, replies, action, reactions, noforwards, ttlPeriod, _entities, }: MessageBaseInterface): void;

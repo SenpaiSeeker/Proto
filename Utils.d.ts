@@ -3,6 +3,7 @@ import type { CustomFile } from "./client/methods/uploads";
 import type { Entity, EntityLike, MessageIDLike } from "./define";
 import type { EntityCache } from "./entityCache";
 import { Api } from "./tl/api";
+import { Buffer } from "./platform";
 export declare function getFileInfo(fileLocation: Api.Message | Api.MessageMediaDocument | Api.MessageMediaPhoto | Api.TypeInputFileLocation): {
     dcId?: number;
     location: Api.TypeInputFileLocation;
@@ -76,8 +77,8 @@ export declare function getInputChatPhoto(photo: any): Api.TypeInputChatPhoto;
  * Adds the JPG header and footer to a stripped image.
  * Ported from https://github.com/telegramdesktop/tdesktop/blob/bec39d89e19670eb436dc794a8f20b657cb87c71/Telegram/SourceFiles/ui/image/image.cpp#L225
 
- * @param stripped{Buffer}
- * @returns {Buffer}
+ * @param stripped - the stripped image bytes
+ * @returns the JPG image bytes
  */
 export declare function strippedPhotoToJpg(stripped: Buffer): Buffer;
 /**
@@ -138,13 +139,9 @@ export interface GetInputMediaInterface {
  If the media is :tl:`InputFile` and ``is_photo`` is known to be `True`,
  it will be treated as an :tl:`InputMediaUploadedPhoto`. Else, the rest
  of parameters will indicate how to treat it.
- * @param media
- * @param isPhoto - whether it's a photo or not
- * @param attributes
- * @param forceDocument
- * @param voiceNote
- * @param videoNote
- * @param supportsStreaming
+ * @param media - the media to convert
+ * @param params - how to treat an uploaded file
+ * @param params.isPhoto - whether it's a photo or not
  */
 export declare function getInputMedia(media: any, { isPhoto, attributes, forceDocument, voiceNote, videoNote, supportsStreaming, spoiler, ttlSeconds, videoCover, videoTimestamp, nosoundVideo, }?: GetInputMediaInterface): Api.TypeInputMedia;
 /**
@@ -153,7 +150,7 @@ export declare function getInputMedia(media: any, { isPhoto, attributes, forceDo
  * @param fileSize
  * @returns {Number}
  */
-export declare function getAppropriatedPartSize(fileSize: bigInt.BigInteger): 256 | 128 | 512;
+export declare function getAppropriatedPartSize(fileSize: bigInt.BigInteger): 128 | 256 | 512;
 export declare function getPeer(peer: EntityLike | any): any;
 /**
  Convert the given peer into its marked ID by default.

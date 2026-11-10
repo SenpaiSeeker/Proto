@@ -1,5 +1,6 @@
 import { Connection, PacketCodec } from "./Connection";
 import type { PacketReader } from "../transport/socket/types";
+import { Buffer } from "../../platform";
 export declare class FullPacketCodec extends PacketCodec {
     private sendCounter;
     encodePacket(data: Buffer): Buffer;

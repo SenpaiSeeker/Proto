@@ -1,5 +1,6 @@
 import { Api } from "../../tl";
 import type { TelegramClient } from "../TelegramClient";
+import { Buffer } from "../../platform";
 /**
  * Email verification options passed to the email callback.
  */

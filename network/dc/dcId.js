@@ -1,58 +1,68 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.kBaseDownloadSmallDcShift = exports.kBaseUploadDcShift = exports.kBaseDownloadDcShift = exports.kMaxMediaDcCount = exports.kExportMediaDcShift = exports.kExportDcShift = exports.kUpdaterDcShift = exports.kLogoutDcShift = exports.kConfigDcShift = exports.kDcShift = void 0;
-exports.bareDcId = bareDcId;
-exports.shiftDcId = shiftDcId;
-exports.getDcIdShift = getDcIdShift;
-exports.downloadDcId = downloadDcId;
-exports.uploadDcId = uploadDcId;
-exports.isDownloadDcId = isDownloadDcId;
-exports.isUploadDcId = isUploadDcId;
-exports.downloadSmallDcId = downloadSmallDcId;
-exports.isDownloadSmallDcId = isDownloadSmallDcId;
-exports.isMediaDcId = isMediaDcId;
-exports.kDcShift = 10000;
-exports.kConfigDcShift = 0x01;
-exports.kLogoutDcShift = 0x02;
-exports.kUpdaterDcShift = 0x03;
-exports.kExportDcShift = 0x04;
-exports.kExportMediaDcShift = 0x05;
-exports.kMaxMediaDcCount = 0x10;
-exports.kBaseDownloadDcShift = 0x10;
-exports.kBaseUploadDcShift = 0x20;
-exports.kBaseDownloadSmallDcShift = 0x30;
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+// teleproto/network/dc/dcId.ts
+const kDcShift = 1e4;
+const kConfigDcShift = 1;
+const kLogoutDcShift = 2;
+const kUpdaterDcShift = 3;
+const kExportDcShift = 4;
+const kExportMediaDcShift = 5;
+const kMaxMediaDcCount = 16;
+const kBaseDownloadDcShift = 16;
+const kBaseUploadDcShift = 32;
+const kBaseDownloadSmallDcShift = 48;
 function bareDcId(shiftedDcId) {
-    return shiftedDcId % exports.kDcShift;
+	return shiftedDcId % kDcShift;
 }
 function shiftDcId(dcId, shift) {
-    return dcId + exports.kDcShift * shift;
+	return dcId + kDcShift * shift;
 }
 function getDcIdShift(shiftedDcId) {
-    return Math.floor(shiftedDcId / exports.kDcShift);
+	return Math.floor(shiftedDcId / kDcShift);
 }
 function downloadDcId(dcId, index) {
-    return shiftDcId(dcId, exports.kBaseDownloadDcShift + index);
+	return shiftDcId(dcId, 16 + index);
 }
 function uploadDcId(dcId, index) {
-    return shiftDcId(dcId, exports.kBaseUploadDcShift + index);
+	return shiftDcId(dcId, 32 + index);
 }
 function isDownloadDcId(shiftedDcId) {
-    const shift = getDcIdShift(shiftedDcId);
-    return (shift >= exports.kBaseDownloadDcShift &&
-        shift < exports.kBaseDownloadDcShift + exports.kMaxMediaDcCount);
+	const shift = getDcIdShift(shiftedDcId);
+	return shift >= 16 && shift < 32;
 }
 function isUploadDcId(shiftedDcId) {
-    const shift = getDcIdShift(shiftedDcId);
-    return (shift >= exports.kBaseUploadDcShift &&
-        shift < exports.kBaseUploadDcShift + exports.kMaxMediaDcCount);
+	const shift = getDcIdShift(shiftedDcId);
+	return shift >= 32 && shift < 48;
 }
 function downloadSmallDcId(dcId, index) {
-    return shiftDcId(dcId, exports.kBaseDownloadSmallDcShift + index);
+	return shiftDcId(dcId, 48 + index);
 }
 function isDownloadSmallDcId(shiftedDcId) {
-    const shift = getDcIdShift(shiftedDcId);
-    return shift >= exports.kBaseDownloadSmallDcShift && shift < exports.kBaseDownloadSmallDcShift + exports.kMaxMediaDcCount;
+	const shift = getDcIdShift(shiftedDcId);
+	return shift >= 48 && shift < 64;
 }
 function isMediaDcId(shiftedDcId) {
-    return isDownloadDcId(shiftedDcId) || isUploadDcId(shiftedDcId) || isDownloadSmallDcId(shiftedDcId);
+	return isDownloadDcId(shiftedDcId) || isUploadDcId(shiftedDcId) || isDownloadSmallDcId(shiftedDcId);
 }
+exports.bareDcId = bareDcId;
+exports.downloadDcId = downloadDcId;
+exports.downloadSmallDcId = downloadSmallDcId;
+exports.getDcIdShift = getDcIdShift;
+exports.isDownloadDcId = isDownloadDcId;
+exports.isDownloadSmallDcId = isDownloadSmallDcId;
+exports.isMediaDcId = isMediaDcId;
+exports.isUploadDcId = isUploadDcId;
+exports.kBaseDownloadDcShift = kBaseDownloadDcShift;
+exports.kBaseDownloadSmallDcShift = kBaseDownloadSmallDcShift;
+exports.kBaseUploadDcShift = kBaseUploadDcShift;
+exports.kConfigDcShift = kConfigDcShift;
+exports.kDcShift = kDcShift;
+exports.kExportDcShift = kExportDcShift;
+exports.kExportMediaDcShift = kExportMediaDcShift;
+exports.kLogoutDcShift = kLogoutDcShift;
+exports.kMaxMediaDcCount = kMaxMediaDcCount;
+exports.kUpdaterDcShift = kUpdaterDcShift;
+exports.shiftDcId = shiftDcId;
+exports.uploadDcId = uploadDcId;

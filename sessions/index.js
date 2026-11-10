@@ -1,11 +1,26 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Session = exports.StoreSession = exports.StringSession = exports.MemorySession = void 0;
-var Memory_1 = require("./Memory");
-Object.defineProperty(exports, "MemorySession", { enumerable: true, get: function () { return Memory_1.MemorySession; } });
-var StringSession_1 = require("./StringSession");
-Object.defineProperty(exports, "StringSession", { enumerable: true, get: function () { return StringSession_1.StringSession; } });
-var StoreSession_1 = require("./StoreSession");
-Object.defineProperty(exports, "StoreSession", { enumerable: true, get: function () { return StoreSession_1.StoreSession; } });
-var Abstract_1 = require("./Abstract");
-Object.defineProperty(exports, "Session", { enumerable: true, get: function () { return Abstract_1.Session; } });
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_runtime = require("../_virtual/_rolldown/runtime.js");
+const require_sessions_Memory = require("./Memory.js");
+const require_sessions_StringSession = require("./StringSession.js");
+const require_sessions_StoreSession = require("./StoreSession.js");
+const require_sessions_Abstract = require("./Abstract.js");
+// teleproto/sessions/index.ts
+var sessions_exports = /* @__PURE__ */ require_runtime.__exportAll({
+	MemorySession: () => require_sessions_Memory.MemorySession,
+	Session: () => require_sessions_Abstract.Session,
+	StoreSession: () => require_sessions_StoreSession.StoreSession,
+	StringSession: () => require_sessions_StringSession.StringSession
+});
+exports.MemorySession = require_sessions_Memory.MemorySession;
+exports.Session = require_sessions_Abstract.Session;
+exports.StoreSession = require_sessions_StoreSession.StoreSession;
+exports.StringSession = require_sessions_StringSession.StringSession;
+Object.defineProperty(exports, "sessions_exports", {
+	enumerable: true,
+	get: function() {
+		return sessions_exports;
+	}
+});

@@ -1,21 +1,24 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.PromisedWebSockets = void 0;
-const WebSocketSocket_1 = require("../../network/transport/socket/WebSocketSocket");
-const ALL = 0x7fffffff;
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_network_transport_socket_WebSocketSocket = require("../../network/transport/socket/WebSocketSocket.js");
+// teleproto/compat/extensions/PromisedWebSockets.ts
+const ALL = 2147483647;
 /** @deprecated Use {@link WebSocketTransport}. */
-class PromisedWebSockets extends WebSocketSocket_1.WebSocketSocket {
-    static { this.isWebSocket = true; }
-    constructor(proxy, _keepAliveInterval) {
-        super();
-        if (proxy && !("MTProxy" in proxy))
-            throw new Error("Socks proxies are not supported over the WebSocket transport");
-    }
-    readAll() {
-        return this.read(ALL);
-    }
-    toString() {
-        return "PromisedWebSockets";
-    }
-}
+var PromisedWebSockets = class extends require_network_transport_socket_WebSocketSocket.WebSocketSocket {
+	static {
+		this.isWebSocket = true;
+	}
+	constructor(proxy, _keepAliveInterval) {
+		super();
+		if (proxy && !("MTProxy" in proxy)) throw new Error("Socks proxies are not supported over the WebSocket transport");
+	}
+	readAll() {
+		return this.read(ALL);
+	}
+	toString() {
+		return "PromisedWebSockets";
+	}
+};
 exports.PromisedWebSockets = PromisedWebSockets;

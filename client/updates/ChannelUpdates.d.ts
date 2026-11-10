@@ -5,6 +5,7 @@ export interface ChannelPollingState {
     pendingRequests: number;
     activeRequests: number;
     pausedUntil?: number;
+    requestInterval?: number;
     channels: {
         channelId: string;
         lastPolledAt?: number;
@@ -28,6 +29,8 @@ export declare class ChannelUpdates {
     private readonly watched;
     private readonly scheduler;
     private readonly requests;
+    private readonly ptsRequests;
+    private ptsBatch?;
     constructor(host: ChannelUpdatesHost);
     private get client();
     start(): void;
@@ -45,9 +48,15 @@ export declare class ChannelUpdates {
     handleFloodWait(request: object, seconds: number): boolean;
     private tracker;
     private invoke;
+    private schedule;
     private readPts;
+    private peerDialogPts;
+    private loadPeerDialogs;
+    private probePts;
+    private deliver;
     private fetchDifference;
     private fetchDifferenceOnce;
+    private resetPts;
     private applyDifference;
     private scheduleRetry;
     private schedulePoll;

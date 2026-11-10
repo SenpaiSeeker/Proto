@@ -2,6 +2,7 @@ import type bigInt from "big-integer";
 import Deferred from "../../extensions/Deferred";
 import type { Reader } from "../../tl/binary/Reader";
 import { Api } from "../../tl";
+import { Buffer } from "../../platform";
 export type OutgoingObject = Api.AnyRequest | Api.MsgsAck | Api.MsgsStateReq | Api.MsgsStateInfo | Api.MsgResendReq;
 export declare function readResult(request: OutgoingObject, reader: Reader): unknown;
 export declare function expectsAnswer(request: OutgoingObject): request is Api.AnyRequest;

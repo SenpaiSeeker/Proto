@@ -1,5 +1,6 @@
 import type { OutFile } from "../../define";
 import type { PartSink } from "./FileDownloader";
+import { Buffer } from "../../platform";
 export interface DownloadTarget extends PartSink {
     close(): Promise<Buffer | string | undefined>;
     abort(): Promise<void>;

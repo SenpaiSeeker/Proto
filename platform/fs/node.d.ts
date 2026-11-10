@@ -1,0 +1,14 @@
+import type { FileHandle, FileStream } from "./types";
+import { Buffer } from "../buffer";
+export declare function open(path: string, flags: "r" | "w"): Promise<FileHandle>;
+export declare function readFile(path: string): Promise<Buffer>;
+export declare function size(path: string): Promise<number>;
+export declare function isFile(path: string): Promise<boolean>;
+export declare function isDirectory(path: string): boolean;
+export declare function isDirectoryAsync(path: string): Promise<boolean>;
+export declare function exists(path: string): boolean;
+export declare function isFileStream(value: unknown): value is FileStream;
+export declare function resolve(...paths: string[]): string;
+export declare function join(...paths: string[]): string;
+export declare function basename(path: string): string;
+export declare function isAbsolute(path: string): boolean;

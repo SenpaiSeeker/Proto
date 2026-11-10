@@ -6,6 +6,7 @@ import { type RPCError } from "../../errors";
 import type { SessionState } from "./SessionState";
 import type { PendingRequests } from "./PendingRequests";
 import { RequestState } from "./RequestState";
+import { Buffer } from "../../platform";
 export interface RouterHost {
     readonly log: Logger;
     readonly state: SessionState;

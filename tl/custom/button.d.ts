@@ -1,6 +1,7 @@
 import type { ButtonLike, EntityLike } from "../../define";
 import { Api } from "../api";
 import type { BigInteger } from "big-integer";
+import { Buffer } from "../../platform";
 export declare class Button {
     button: ButtonLike;
     resize: boolean | undefined;

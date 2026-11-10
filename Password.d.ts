@@ -1,4 +1,5 @@
 import { Api } from "./tl";
+import { Buffer } from "./platform";
 /**
  *
  * @param algo {constructors.PasswordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow}

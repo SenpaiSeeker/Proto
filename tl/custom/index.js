@@ -1,9 +1,12 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Keyboard = exports.ReplyKeyboard = exports.InlineKeyboard = exports.ChatGetter = void 0;
-var chatGetter_1 = require("./chatGetter");
-Object.defineProperty(exports, "ChatGetter", { enumerable: true, get: function () { return chatGetter_1.ChatGetter; } });
-var keyboard_1 = require("./keyboard");
-Object.defineProperty(exports, "InlineKeyboard", { enumerable: true, get: function () { return keyboard_1.InlineKeyboard; } });
-Object.defineProperty(exports, "ReplyKeyboard", { enumerable: true, get: function () { return keyboard_1.ReplyKeyboard; } });
-Object.defineProperty(exports, "Keyboard", { enumerable: true, get: function () { return keyboard_1.Keyboard; } });
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_tl_custom_chatGetter = require("./chatGetter.js");
+const require_tl_custom_keyboard = require("./keyboard.js");
+const require_tl_custom_RichContent = require("./RichContent.js");
+exports.ChatGetter = require_tl_custom_chatGetter.ChatGetter;
+exports.InlineKeyboard = require_tl_custom_keyboard.InlineKeyboard;
+exports.Keyboard = require_tl_custom_keyboard.Keyboard;
+exports.ReplyKeyboard = require_tl_custom_keyboard.ReplyKeyboard;
+exports.RichContent = require_tl_custom_RichContent.RichContent;

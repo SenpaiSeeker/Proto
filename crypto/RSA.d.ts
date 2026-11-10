@@ -1,4 +1,5 @@
 import bigInt from "big-integer";
+import { Buffer } from "../platform";
 export declare const _serverKeys: Map<string, {
     n: bigInt.BigInteger;
     e: number;

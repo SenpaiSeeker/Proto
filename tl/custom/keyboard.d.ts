@@ -2,6 +2,7 @@ import type { BigInteger } from "big-integer";
 import type { EntityLike } from "../../define";
 import { Api } from "../api";
 import { Button } from "./button";
+import { Buffer } from "../../platform";
 /** Background colour of a button, mapping to the `bg_*` flags of the schema. */
 export type ButtonColor = "primary" | "danger" | "success";
 /** Shorthand for {@link Api.KeyboardButtonStyle}. */

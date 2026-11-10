@@ -9,7 +9,7 @@ import { Api } from "../../tl";
  * @hidden
  */
 export declare function _parseInviteHash(link: string): string;
-/** Parameters for {@link exportChatInvite}. */
+/** Parameters for {@link TelegramClient.exportChatInvite}. */
 export interface ExportChatInviteParams {
     /** Human-readable title of the link (visible to admins only). */
     title?: string;
@@ -26,7 +26,7 @@ export interface ExportChatInviteParams {
 }
 /** @hidden */
 export declare function exportChatInvite(client: TelegramClient, entity: EntityLike, params?: ExportChatInviteParams): Promise<Api.TypeExportedChatInvite>;
-/** Parameters for {@link editExportedChatInvite}. */
+/** Parameters for {@link TelegramClient.editExportedChatInvite}. */
 export interface EditExportedChatInviteParams {
     /** Revoke the link, preventing further joins. */
     revoked?: boolean;
@@ -49,7 +49,7 @@ export declare function deleteExportedChatInvite(client: TelegramClient, entity:
 export declare function deleteRevokedExportedChatInvites(client: TelegramClient, entity: EntityLike, admin?: EntityLike): Promise<boolean>;
 /** @hidden */
 export declare function getAdminsWithInvites(client: TelegramClient, entity: EntityLike): Promise<Api.messages.ChatAdminsWithInvites>;
-/** Parameters for {@link iterExportedChatInvites}/{@link getExportedChatInvites}. */
+/** Parameters for {@link TelegramClient.iterExportedChatInvites}/{@link TelegramClient.getExportedChatInvites}. */
 export interface ExportedChatInvitesParams {
     /** How many links to retrieve. Defaults to all. */
     limit?: number;

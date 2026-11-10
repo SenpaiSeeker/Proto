@@ -3,6 +3,7 @@ import type { FileTransfers, TransferKind } from "./FileTransfers";
 import { PartsManager } from "./PartsManager";
 import { ResourceState } from "./ResourceState";
 import type { ResourceConsumer } from "./ResourceManager";
+import { Buffer } from "../../platform";
 export interface PartSink {
     write(offset: number, data: Buffer): Promise<void> | void;
 }

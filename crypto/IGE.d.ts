@@ -1,3 +1,4 @@
+import { Buffer } from "../platform";
 declare class IGE {
     private readonly cipher;
     private readonly iv;

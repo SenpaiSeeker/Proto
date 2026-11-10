@@ -1,6 +1,7 @@
 import { Connection } from "./Connection";
 import { IntermediatePacketCodec } from "./IntermediateCodec";
 import type { PacketReader, SocketInterface } from "../transport/socket/types";
+import { Buffer } from "../../platform";
 export interface ObfuscationParams {
     protocolTag: Buffer;
     dcId: number;

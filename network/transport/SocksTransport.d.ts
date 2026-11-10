@@ -1,6 +1,6 @@
-import type * as net from "node:net";
 import type { Connection } from "../connection/Connection";
 import { Transport, type ResolvedTransport } from "./Transport";
+import { net } from "../../platform";
 export interface SocksTransportOptions {
     host: string;
     port: number;

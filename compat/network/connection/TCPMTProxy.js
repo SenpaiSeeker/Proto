@@ -1,18 +1,18 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConnectionTCPMTProxyAbridged = exports.TCPMTProxy = exports.PaddedIntermediatePacketCodec = void 0;
-exports.isLegacyProxyConnection = isLegacyProxyConnection;
-const Obfuscation_1 = require("../../../network/connection/Obfuscation");
-var IntermediateCodec_1 = require("../../../network/connection/IntermediateCodec");
-Object.defineProperty(exports, "PaddedIntermediatePacketCodec", { enumerable: true, get: function () { return IntermediateCodec_1.PaddedIntermediatePacketCodec; } });
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_network_connection_Obfuscation = require("../../../network/connection/Obfuscation.js");
+const require_network_connection_IntermediateCodec = require("../../../network/connection/IntermediateCodec.js");
+// teleproto/compat/network/connection/TCPMTProxy.ts
 /** @deprecated The proxy picks its own framing: pass `proxy` or an `MTProxyTransport` without `connection`. */
-class TCPMTProxy extends Obfuscation_1.ConnectionTCPObfuscated {
-}
-exports.TCPMTProxy = TCPMTProxy;
+var TCPMTProxy = class extends require_network_connection_Obfuscation.ConnectionTCPObfuscated {};
 /** @deprecated The proxy picks its own framing: pass `proxy` or an `MTProxyTransport` without `connection`. */
-class ConnectionTCPMTProxyAbridged extends TCPMTProxy {
+var ConnectionTCPMTProxyAbridged = class extends TCPMTProxy {};
+function isLegacyProxyConnection(connection) {
+	return typeof connection === "function" && connection.prototype instanceof TCPMTProxy;
 }
 exports.ConnectionTCPMTProxyAbridged = ConnectionTCPMTProxyAbridged;
-function isLegacyProxyConnection(connection) {
-    return typeof connection === "function" && connection.prototype instanceof TCPMTProxy;
-}
+exports.PaddedIntermediatePacketCodec = require_network_connection_IntermediateCodec.PaddedIntermediatePacketCodec;
+exports.TCPMTProxy = TCPMTProxy;
+exports.isLegacyProxyConnection = isLegacyProxyConnection;

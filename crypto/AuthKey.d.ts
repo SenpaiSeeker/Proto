@@ -1,4 +1,5 @@
 import bigInt from "big-integer";
+import { Buffer } from "../platform";
 export declare class AuthKey {
     private _key?;
     private _hash?;

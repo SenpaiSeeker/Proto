@@ -1,6 +1,6 @@
 {
   "name": "teleproto",
-  "version": "1.232.0-seeker.1",
+  "version": "1.233.0-seeker.1",
   "description": "Modern Telegram MTProto client for Node.js, written in TypeScript",
   "main": "index.js",
   "types": "index.d.ts",
@@ -468,6 +468,12 @@
       ]
     }
   },
+  "imports": {
+    "#platform/*": {
+      "node": "./platform/*/node.js",
+      "default": "./platform/*/browser.js"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sanyok12345/teleproto.git"
@@ -501,9 +507,9 @@
   },
   "dependencies": {
     "big-integer": "^1.6.48",
-    "cifrante": "0.6.0",
+    "buffer": "^6.0.3",
+    "cifrante": "0.8.1",
     "mime": "^3.0.0",
-    "socks": "^2.6.2",
-    "store2": "^2.13.0"
+    "socks": "^2.6.2"
   }
 }

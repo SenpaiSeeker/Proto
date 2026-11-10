@@ -1,5 +1,6 @@
 import type { SessionState } from "./SessionState";
 import { type OutgoingObject, type RequestState } from "./RequestState";
+import { Buffer } from "../../platform";
 export interface PackedMessages {
     batch: RequestState[];
     data: Buffer;

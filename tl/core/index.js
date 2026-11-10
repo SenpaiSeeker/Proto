@@ -1,16 +1,19 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.coreObjects = exports.GZIPPacked = exports.MessageContainer = exports.RPCResult = exports.TLMessage = void 0;
-const GZIPPacked_1 = require("./GZIPPacked");
-Object.defineProperty(exports, "GZIPPacked", { enumerable: true, get: function () { return GZIPPacked_1.GZIPPacked; } });
-const MessageContainer_1 = require("./MessageContainer");
-Object.defineProperty(exports, "MessageContainer", { enumerable: true, get: function () { return MessageContainer_1.MessageContainer; } });
-const RPCResult_1 = require("./RPCResult");
-Object.defineProperty(exports, "RPCResult", { enumerable: true, get: function () { return RPCResult_1.RPCResult; } });
-var TLMessage_1 = require("./TLMessage");
-Object.defineProperty(exports, "TLMessage", { enumerable: true, get: function () { return TLMessage_1.TLMessage; } });
-exports.coreObjects = new Map([
-    [RPCResult_1.RPCResult.CONSTRUCTOR_ID, RPCResult_1.RPCResult],
-    [GZIPPacked_1.GZIPPacked.CONSTRUCTOR_ID, GZIPPacked_1.GZIPPacked],
-    [MessageContainer_1.MessageContainer.CONSTRUCTOR_ID, MessageContainer_1.MessageContainer],
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_tl_core_GZIPPacked = require("./GZIPPacked.js");
+const require_tl_core_MessageContainer = require("./MessageContainer.js");
+const require_tl_core_RPCResult = require("./RPCResult.js");
+const require_tl_core_TLMessage = require("./TLMessage.js");
+// teleproto/tl/core/index.ts
+const coreObjects = /* @__PURE__ */ new Map([
+	[require_tl_core_RPCResult.RPCResult.CONSTRUCTOR_ID, require_tl_core_RPCResult.RPCResult],
+	[require_tl_core_GZIPPacked.GZIPPacked.CONSTRUCTOR_ID, require_tl_core_GZIPPacked.GZIPPacked],
+	[require_tl_core_MessageContainer.MessageContainer.CONSTRUCTOR_ID, require_tl_core_MessageContainer.MessageContainer]
 ]);
+exports.GZIPPacked = require_tl_core_GZIPPacked.GZIPPacked;
+exports.MessageContainer = require_tl_core_MessageContainer.MessageContainer;
+exports.RPCResult = require_tl_core_RPCResult.RPCResult;
+exports.TLMessage = require_tl_core_TLMessage.TLMessage;
+exports.coreObjects = coreObjects;

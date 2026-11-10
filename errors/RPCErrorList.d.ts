@@ -279,7 +279,7 @@ export declare class BroadcastRequiredError extends BadRequestError {
 export declare class BusinessConnectionInvalidError extends BadRequestError {
     constructor(args: ErrorArgs);
 }
-/** This method was invoked over a business connection using [invokeWithBusinessConnection](https://core.telegram.org/api/business#connected-bots), but either (1) we're a user, and users cannot invoke methods over a business connection; (2) we're a bot, but business mode was disabled in @botfather or (3); we're a bot, but this method cannot be invoked over a business connection. */
+/** This method was invoked over a business connection using [invokeWithBusinessConnection](https://core.telegram.org/api/business#connected-bots), but either (1) we're a user, and users cannot invoke methods over a business connection; (2) we're a bot, but business mode was disabled in \@botfather or (3); we're a bot, but this method cannot be invoked over a business connection. */
 export declare class BusinessConnectionNotAllowedError extends BadRequestError {
     constructor(args: ErrorArgs);
 }
@@ -2474,7 +2474,7 @@ export declare class UserBotInvalidError extends BadRequestError {
 export declare class UserBotRequiredError extends BadRequestError {
     constructor(args: ErrorArgs);
 }
-/** Bot-to-bot messaging is disabled because one of the two bots hasn't enabled the Bot to Bot setting in @BotFather. */
+/** Bot-to-bot messaging is disabled because one of the two bots hasn't enabled the Bot to Bot setting in \@BotFather. */
 export declare class UserBotToBotDisabledError extends BadRequestError {
     constructor(args: ErrorArgs);
 }
@@ -2736,12 +2736,80 @@ export declare class InputMethodInvalidError extends BadRequestError {
 export declare class InputRequestTooLongError extends BadRequestError {
     constructor(args: ErrorArgs);
 }
-/** The current account is spamreported, you cannot execute this action, check @spambot for more info. */
+/** The current account is spamreported, you cannot execute this action, check \@spambot for more info. */
 export declare class PeerFloodError extends BadRequestError {
     constructor(args: ErrorArgs);
 }
 /** The passed stickerset information is equal to the current information. */
 export declare class StickersetNotModifiedError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** An invalid authorization token was provided */
+export declare class AuthTokenInvalid2Error extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** Base port location invalid */
+export declare class BasePortLocInvalidError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** The provided commands are too many */
+export declare class BotCommandsTooMuchError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** This method can only be run by a bot */
+export declare class BotMissingError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** You cannot create polls under a bot account */
+export declare class BotPollsDisabledError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** BROADCAST_CALLS_DISABLED */
+export declare class BroadcastCallsDisabledError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** The channel is banned */
+export declare class ChannelBannedError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** EXPIRE_FORBIDDEN */
+export declare class ExpireForbiddenError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** The field with the name FIELD_NAME is missing */
+export declare class FieldNameEmptyError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** The field with the name FIELD_NAME is invalid */
+export declare class FieldNameInvalidError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** File part 0 missing */
+export declare class FilePart0MissingError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** Group call invalid */
+export declare class GroupCallInvalidError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** This layer does not support polls in the issued method */
+export declare class PollUnsupportedError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** Invalid call reflector server */
+export declare class ReflectorNotAvailableError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** An error occurred when trying to register the short-name used for the sticker pack. Try a different name */
+export declare class ShortnameOccupyFailedError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** The type constructor is invalid */
+export declare class TypeConstructorInvalidError extends BadRequestError {
+    constructor(args: ErrorArgs);
+}
+/** UNKNOWN_ERROR */
+export declare class UnknownErrorError extends BadRequestError {
     constructor(args: ErrorArgs);
 }
 /** The specified authorization key is not registered in the system (for example, a PFS temporary key has expired). */
@@ -2774,6 +2842,10 @@ export declare class UserDeactivatedError extends UnauthorizedError {
 }
 /** The current account was deleted and banned by Telegram's antispam system. */
 export declare class UserDeactivatedBanError extends UnauthorizedError {
+    constructor(args: ErrorArgs);
+}
+/** The method is only available to already activated users */
+export declare class ActiveUserRequiredError extends UnauthorizedError {
     constructor(args: ErrorArgs);
 }
 /** The account was deactivated, or is a bot/service account. */
@@ -2949,6 +3021,10 @@ export declare class YourPrivacyRestrictedError extends ForbiddenError {
 export declare class ChatForbiddenError extends ForbiddenError {
     constructor(args: ErrorArgs);
 }
+/** NOT_ALLOWED */
+export declare class NotAllowedError extends ForbiddenError {
+    constructor(args: ErrorArgs);
+}
 /** Please update the app to access the gift API. */
 export declare class ApiGiftRestrictedUpdateAppError extends AuthKeyError {
     constructor(args: ErrorArgs);
@@ -3038,6 +3114,10 @@ export declare class UserpicPrivacyRequiredError extends AuthKeyError {
 export declare class AuthKeyDuplicatedError extends AuthKeyError {
     constructor(args: ErrorArgs);
 }
+/** Similar to a flood wait, must wait %d minutes */
+export declare class PreviousChatImportActiveWaitXminError extends AuthKeyError {
+    constructor(args: ErrorArgs);
+}
 /** Since this account is active and protected by a 2FA password, we will delete it in 1 week for security purposes. You can cancel this process at any time, you'll be able to reset your account in %d seconds. */
 export declare class TwoFaConfirmWaitError extends FloodError {
     value: number;
@@ -3110,6 +3190,100 @@ export declare class TranslateReqFailedError extends ServerError {
 }
 /** A timeout occurred while translating the specified text. */
 export declare class TranslationTimeoutError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** CHAT_GET_FAILED */
+export declare class ChatGetFailedError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** The statistics cannot be retrieved at this time */
+export declare class ChpCallFailError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** TDLib developer claimed it is not an error while accepting secret chats and 500 is used instead of 420 */
+export declare class EncryptionOccupyFailedError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** GROUPCALL_ADD_PARTICIPANTS_FAILED */
+export declare class GroupcallAddParticipantsFailedError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** Fetching of history failed */
+export declare class HistoryGetFailedError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** An error occurred while communicating with DC %d */
+export declare class InterdcCallErrorError extends ServerError {
+    value: number;
+    constructor(args: ErrorArgs);
+}
+/** A rich error occurred while communicating with DC %d */
+export declare class InterdcCallRichErrorError extends ServerError {
+    value: number;
+    constructor(args: ErrorArgs);
+}
+/** An internal failure occurred while fetching user info (couldn't find location) */
+export declare class MemberNoLocationError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** Occupation of primary member location failed */
+export declare class MemberOccupyPrimaryLocFailedError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** The request should be retried with a lower message ID */
+export declare class MsgidDecreaseRetryError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** MT_SEND_QUEUE_TOO_LONG */
+export declare class MtSendQueueTooLongError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** The provided chat is invalid */
+export declare class NeedChatInvalidError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** The provided member is invalid or does not exist (for example a thumb size) */
+export declare class NeedMemberInvalidError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** Failure while making call */
+export declare class ParticipantCallFailedError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** The postponed call has timed out */
+export declare class PostponedTimeoutError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** No PTS change */
+export declare class PtsChangeEmptyError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** Failure while generating registration ID */
+export declare class RegIdGenerateFailedError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** Telegram is having internal issues, please try again later. */
+export declare class RpcCallFailError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** Telegram is having internal issues, please try again later. */
+export declare class RpcMcgetFailError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** Server storage check failed */
+export declare class StorageCheckFailedError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** STORE_INVALID_SCALAR_TYPE */
+export declare class StoreInvalidScalarTypeError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** The method you tried to call cannot be called on non-CDN DCs */
+export declare class UnknownMethodError extends ServerError {
+    constructor(args: ErrorArgs);
+}
+/** Telegram workers are too busy to respond immediately */
+export declare class WorkerBusyTooLongRetryError extends ServerError {
     constructor(args: ErrorArgs);
 }
 /** Timeout while fetching data. */

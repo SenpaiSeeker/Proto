@@ -2,6 +2,7 @@ import { Api } from "../../tl";
 import type { TelegramClient } from "../TelegramClient";
 import { EntityLike, OutFile, ProgressCallback } from "../../define";
 import bigInt from "big-integer";
+import { Buffer } from "../../platform";
 export interface progressCallback {
     (downloaded: bigInt.BigInteger, fullSize: bigInt.BigInteger, ...args: any[]): void;
     isCanceled?: boolean;

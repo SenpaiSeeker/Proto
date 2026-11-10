@@ -2,9 +2,9 @@
 
 This repository is a fork of [`sanyok12345/teleproto`](https://github.com/sanyok12345/teleproto)
 prepared for a deployment that runs **500 userbot clients + 1 parent bot in a
-single Node.js process**. The fork is based on upstream **v1.232.0** (layer
-232) and re-applies the non-blocking/scale fixes that still matter after
-upstream's transport, media and update-manager refactor.
+single Node.js process**. The fork is based on upstream **v1.233.0** (layer
+233) and re-applies the non-blocking/scale fixes that still matter after
+upstream's transport, media, update-manager and platform-domain refactor.
 
 Everything else is upstream code.
 
@@ -13,8 +13,8 @@ Everything else is upstream code.
 `teleproto/tl/core/GZIPPacked.ts`, `teleproto/tl/core/RPCResult.ts`,
 `teleproto/network/mtproto/MessageRouter.ts`, `teleproto/network/session/Session.ts`
 
-Upstream 1.232 decompresses `gzip_packed` payloads with `zlib.unzipSync` while
-routing incoming messages. Telegram gzips large update containers and RPC
+Upstream 1.233 decompresses `gzip_packed` payloads with the synchronous
+`cifrante` decompressor while routing incoming messages. Telegram gzips large update containers and RPC
 results, so a single message could block the event loop for the duration of
 the decompression.
 
@@ -34,7 +34,7 @@ synchronously. Loading/booting hundreds of file-backed sessions produced a
 single 465 ms event-loop stall in the 1.230.1 deployment.
 
 `FileStore` keeps the exact on-disk format (one file per key, the same
-`encodeURIComponent`-based file names, the same `store2` serialization) but:
+`encodeURIComponent`-based file names, the same JSON serialization) but:
 
 - reads stay synchronous (`readFileSync`), because the session API is
   synchronous; reads are cheap and never fsync,
@@ -55,7 +55,10 @@ was verified in both directions with `setDC`, auth keys, per-DC auth keys and
 `testServers`. Delete a session with `StoreSession.delete()` followed by
 `await flush()` when the directory must be removed immediately.
 
-`node-localstorage` (and its `@types`) is no longer a dependency.
+`node-localstorage` (and its `@types`) is no longer a dependency. The
+`platform/storage` node implementation now opens a `FileStore` too, so the
+storage domain keeps the same on-disk format without pulling in the
+synchronous writer.
 
 ## 3. Entity lookups served from memory
 
@@ -91,8 +94,8 @@ size. `FileTarget` already awaits `FileHandle.write()`; `BufferTarget` writes
 directly into its destination buffer.
 
 `getProperFilename` (called for directory outputs) used `existsSync` plus
-`lstatSync` per download; it is now an `async` function using
-`fs.promises.lstat`. Downloads no longer issue synchronous stats.
+`lstatSync` per download; it is now an `async` function using the platform
+`fs.isDirectoryAsync()`. Downloads no longer issue synchronous stats.
 
 ## 5. Backpressure on the socket write path
 
@@ -117,7 +120,7 @@ unbounded buffer.
 
 ## 6. Media pipeline after upstream 1.232
 
-Upstream 1.232 replaced the old `MediaScheduler`/`OrderedWriter` pipeline with
+Upstream 1.232 (kept in 1.233) replaced the old `MediaScheduler`/`OrderedWriter` pipeline with
 `FileDownloader`, `FileUploader`, `ResourceManager` and per-DC session pools.
 The old fork's 8x8 window and 4096 requests/s pacing constants no longer
 exist upstream; the new pipeline bounds in-flight bytes through
@@ -127,7 +130,7 @@ sink.
 The fork keeps the new upstream pipeline and adds the download-writer and
 socket backpressure described above. The previous 1 GB/s media benchmark was
 written against the removed 1.230.1 pipeline, so it is not a valid measurement
-for 1.232.0. Re-baseline media throughput before making a new gigabit claim.
+for 1.233.0. Re-baseline media throughput before making a new gigabit claim.
 
 ## 7. Stale channel update tracking
 
@@ -155,17 +158,28 @@ transient and valid resolution paths against the new `ChannelUpdates` class.
 
 ## Regression coverage
 
-`sim/staleChannel.ts` runs against the 1.232 update manager:
+`sim/staleChannel.ts` runs against the 1.233 update manager:
 
 ```bash
 /root/TgUserBot/node_modules/.bin/tsx sim/staleChannel.ts
 # stale channel regression: OK
 ```
 
-`sim/entityCacheMemory.ts` still measures the entity-cache memory bound.
-`sim/mediaThroughput.ts` and `sim/scale500.ts` were written against the
-1.230.1 transport/media internals and need a 1.232 re-baseline before they
-can be used as gates.
+`sim/scale500.ts` was updated for the 1.233 network stack. It builds 500
+clients over an in-process connection, runs a ping storm, exercises async
+GZIP, writes and loads 500 file-backed sessions, performs 200k entity lookups,
+and drives 500 slow download sinks plus a slow TCP peer. It reports no
+blocking I/O on this host:
+
+```bash
+npx tsx sim/scale500.ts --clients=500 --seconds=5 --sessions=500
+# VERDICT: no blocking I/O detected
+```
+
+`sim/entityCacheMemory.ts` still measures the entity-cache memory bound. The
+old 1.230.1 media throughput harness is archived under `sim/legacy/` because
+it imports the removed `MediaScheduler`/`OrderedWriter` APIs. A new 1.233
+media baseline is still needed before making a gigabit-per-second claim.
 
 ## Related fix outside this repository
 

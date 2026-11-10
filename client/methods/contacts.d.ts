@@ -4,7 +4,7 @@ import { TotalList } from "../../Helpers";
 import { Api } from "../../tl";
 /** @hidden */
 export declare function getContacts(client: TelegramClient): Promise<Api.User[]>;
-/** Parameters for {@link addContact}. */
+/** Parameters for {@link TelegramClient.addContact}. */
 export interface AddContactParams {
     /** The contact's first name. */
     firstName: string;
@@ -21,7 +21,7 @@ export interface AddContactParams {
 export declare function addContact(client: TelegramClient, entity: EntityLike, params: AddContactParams): Promise<Api.TypeUpdates>;
 /** @hidden */
 export declare function deleteContacts(client: TelegramClient, users: EntityLike | EntityLike[]): Promise<Api.TypeUpdates>;
-/** One phone-book entry for {@link importContacts}. */
+/** One phone-book entry for {@link TelegramClient.importContacts}. */
 export interface ImportContactEntry {
     /** The contact's phone number. */
     phone: string;
@@ -44,7 +44,7 @@ export declare function block(client: TelegramClient, entity: EntityLike, params
 export declare function unblock(client: TelegramClient, entity: EntityLike, params?: {
     myStoriesFrom?: boolean;
 }): Promise<boolean>;
-/** Parameters for {@link getBlocked}. */
+/** Parameters for {@link TelegramClient.getBlocked}. */
 export interface GetBlockedParams {
     /** Number of results to skip. */
     offset?: number;

@@ -1,4 +1,5 @@
 import { MemorySession } from "./Memory";
+import { Buffer } from "../platform";
 export declare class StringSession extends MemorySession {
     _key?: Buffer;
     private _loaded;

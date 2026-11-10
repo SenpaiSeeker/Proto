@@ -1,4 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.version = void 0;
-exports.version = "1.232.0-seeker.1";
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+// teleproto/Version.ts
+const version = "1.233.0-seeker.1";
+exports.version = version;

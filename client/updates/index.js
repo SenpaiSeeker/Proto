@@ -1,30 +1,59 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpdateContext = exports.ClientUpdates = exports.WAIT_FOR_SKIPPED_TIMEOUT_MS = exports.PtsWaiter = exports.UpdateManager = exports.UpdateLoop = exports.UpdateDispatcher = exports._updateLoop = exports._stopUpdateLoop = exports._clearUpdateQueue = exports._dispatchUpdate = exports._handleUpdate = exports.StopPropagation = exports.catchUp = exports.listEventHandlers = exports.removeEventHandler = exports.addEventHandler = exports.on = void 0;
-var updates_1 = require("../methods/updates");
-Object.defineProperty(exports, "on", { enumerable: true, get: function () { return updates_1.on; } });
-Object.defineProperty(exports, "addEventHandler", { enumerable: true, get: function () { return updates_1.addEventHandler; } });
-Object.defineProperty(exports, "removeEventHandler", { enumerable: true, get: function () { return updates_1.removeEventHandler; } });
-Object.defineProperty(exports, "listEventHandlers", { enumerable: true, get: function () { return updates_1.listEventHandlers; } });
-Object.defineProperty(exports, "catchUp", { enumerable: true, get: function () { return updates_1.catchUp; } });
-var StopPropagation_1 = require("./StopPropagation");
-Object.defineProperty(exports, "StopPropagation", { enumerable: true, get: function () { return StopPropagation_1.StopPropagation; } });
-var dispatch_1 = require("../../compat/client/updates/dispatch");
-Object.defineProperty(exports, "_handleUpdate", { enumerable: true, get: function () { return dispatch_1._handleUpdate; } });
-Object.defineProperty(exports, "_dispatchUpdate", { enumerable: true, get: function () { return dispatch_1._dispatchUpdate; } });
-Object.defineProperty(exports, "_clearUpdateQueue", { enumerable: true, get: function () { return dispatch_1._clearUpdateQueue; } });
-Object.defineProperty(exports, "_stopUpdateLoop", { enumerable: true, get: function () { return dispatch_1._stopUpdateLoop; } });
-Object.defineProperty(exports, "_updateLoop", { enumerable: true, get: function () { return dispatch_1._updateLoop; } });
-var UpdateDispatcher_1 = require("./UpdateDispatcher");
-Object.defineProperty(exports, "UpdateDispatcher", { enumerable: true, get: function () { return UpdateDispatcher_1.UpdateDispatcher; } });
-var UpdateLoop_1 = require("./UpdateLoop");
-Object.defineProperty(exports, "UpdateLoop", { enumerable: true, get: function () { return UpdateLoop_1.UpdateLoop; } });
-var UpdateManager_1 = require("./UpdateManager");
-Object.defineProperty(exports, "UpdateManager", { enumerable: true, get: function () { return UpdateManager_1.UpdateManager; } });
-var PtsWaiter_1 = require("./PtsWaiter");
-Object.defineProperty(exports, "PtsWaiter", { enumerable: true, get: function () { return PtsWaiter_1.PtsWaiter; } });
-Object.defineProperty(exports, "WAIT_FOR_SKIPPED_TIMEOUT_MS", { enumerable: true, get: function () { return PtsWaiter_1.WAIT_FOR_SKIPPED_TIMEOUT_MS; } });
-var ClientUpdates_1 = require("./ClientUpdates");
-Object.defineProperty(exports, "ClientUpdates", { enumerable: true, get: function () { return ClientUpdates_1.ClientUpdates; } });
-var UpdateContext_1 = require("./UpdateContext");
-Object.defineProperty(exports, "UpdateContext", { enumerable: true, get: function () { return UpdateContext_1.UpdateContext; } });
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_runtime = require("../../_virtual/_rolldown/runtime.js");
+const require_client_methods_updates = require("../methods/updates.js");
+const require_client_updates_StopPropagation = require("./StopPropagation.js");
+const require_compat_client_updates_dispatch = require("../../compat/client/updates/dispatch.js");
+const require_client_updates_UpdateDispatcher = require("./UpdateDispatcher.js");
+const require_client_updates_UpdateLoop = require("./UpdateLoop.js");
+const require_client_updates_UpdateManager = require("./UpdateManager.js");
+const require_client_updates_PtsWaiter = require("./PtsWaiter.js");
+const require_client_updates_ClientUpdates = require("./ClientUpdates.js");
+const require_client_updates_UpdateContext = require("./UpdateContext.js");
+// teleproto/client/updates/index.ts
+var updates_exports = /* @__PURE__ */ require_runtime.__exportAll({
+	ClientUpdates: () => require_client_updates_ClientUpdates.ClientUpdates,
+	PtsWaiter: () => require_client_updates_PtsWaiter.PtsWaiter,
+	StopPropagation: () => require_client_updates_StopPropagation.StopPropagation,
+	UpdateContext: () => require_client_updates_UpdateContext.UpdateContext,
+	UpdateDispatcher: () => require_client_updates_UpdateDispatcher.UpdateDispatcher,
+	UpdateLoop: () => require_client_updates_UpdateLoop.UpdateLoop,
+	UpdateManager: () => require_client_updates_UpdateManager.UpdateManager,
+	WAIT_FOR_SKIPPED_TIMEOUT_MS: () => 700,
+	_clearUpdateQueue: () => require_compat_client_updates_dispatch._clearUpdateQueue,
+	_dispatchUpdate: () => require_compat_client_updates_dispatch._dispatchUpdate,
+	_handleUpdate: () => require_compat_client_updates_dispatch._handleUpdate,
+	_stopUpdateLoop: () => require_compat_client_updates_dispatch._stopUpdateLoop,
+	_updateLoop: () => require_compat_client_updates_dispatch._updateLoop,
+	addEventHandler: () => require_client_methods_updates.addEventHandler,
+	catchUp: () => require_client_methods_updates.catchUp,
+	listEventHandlers: () => require_client_methods_updates.listEventHandlers,
+	on: () => require_client_methods_updates.on,
+	removeEventHandler: () => require_client_methods_updates.removeEventHandler
+});
+exports.ClientUpdates = require_client_updates_ClientUpdates.ClientUpdates;
+exports.PtsWaiter = require_client_updates_PtsWaiter.PtsWaiter;
+exports.StopPropagation = require_client_updates_StopPropagation.StopPropagation;
+exports.UpdateContext = require_client_updates_UpdateContext.UpdateContext;
+exports.UpdateDispatcher = require_client_updates_UpdateDispatcher.UpdateDispatcher;
+exports.UpdateLoop = require_client_updates_UpdateLoop.UpdateLoop;
+exports.UpdateManager = require_client_updates_UpdateManager.UpdateManager;
+exports.WAIT_FOR_SKIPPED_TIMEOUT_MS = require_client_updates_PtsWaiter.WAIT_FOR_SKIPPED_TIMEOUT_MS;
+exports._clearUpdateQueue = require_compat_client_updates_dispatch._clearUpdateQueue;
+exports._dispatchUpdate = require_compat_client_updates_dispatch._dispatchUpdate;
+exports._handleUpdate = require_compat_client_updates_dispatch._handleUpdate;
+exports._stopUpdateLoop = require_compat_client_updates_dispatch._stopUpdateLoop;
+exports._updateLoop = require_compat_client_updates_dispatch._updateLoop;
+exports.addEventHandler = require_client_methods_updates.addEventHandler;
+exports.catchUp = require_client_methods_updates.catchUp;
+exports.listEventHandlers = require_client_methods_updates.listEventHandlers;
+exports.on = require_client_methods_updates.on;
+exports.removeEventHandler = require_client_methods_updates.removeEventHandler;
+Object.defineProperty(exports, "updates_exports", {
+	enumerable: true,
+	get: function() {
+		return updates_exports;
+	}
+});

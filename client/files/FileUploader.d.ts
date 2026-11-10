@@ -3,6 +3,7 @@ import type { FileTransfers } from "./FileTransfers";
 import { PartsManager } from "./PartsManager";
 import { ResourceState } from "./ResourceState";
 import type { ResourceConsumer } from "./ResourceManager";
+import { Buffer } from "../../platform";
 export declare const BIG_FILE_SIZE: number;
 export interface UploadOptions {
     fileId: bigInt.BigInteger;

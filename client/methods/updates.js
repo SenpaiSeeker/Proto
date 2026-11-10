@@ -1,31 +1,33 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.StopPropagation = void 0;
-exports.on = on;
-exports.addEventHandler = addEventHandler;
-exports.removeEventHandler = removeEventHandler;
-exports.listEventHandlers = listEventHandlers;
-exports.catchUp = catchUp;
-const Raw_1 = require("../../events/Raw");
-var StopPropagation_1 = require("../updates/StopPropagation");
-Object.defineProperty(exports, "StopPropagation", { enumerable: true, get: function () { return StopPropagation_1.StopPropagation; } });
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_events_Raw = require("../../events/Raw.js");
+const require_client_updates_StopPropagation = require("../updates/StopPropagation.js");
+// teleproto/client/methods/updates.ts
 function on(client, event) {
-    return (f) => {
-        client.addEventHandler(f, event);
-        return f;
-    };
+	return (f) => {
+		client.addEventHandler(f, event);
+		return f;
+	};
 }
 function addEventHandler(client, callback, event) {
-    event ??= new Raw_1.Raw({});
-    event.client = client;
-    client._eventBuilders.push([event, callback]);
+	event ??= new require_events_Raw.Raw({});
+	event.client = client;
+	client._eventBuilders.push([event, callback]);
 }
 function removeEventHandler(client, callback, event) {
-    client._eventBuilders = client._eventBuilders.filter((item) => item[0] !== event && item[1] !== callback);
+	client._eventBuilders = client._eventBuilders.filter((item) => item[0] !== event && item[1] !== callback);
 }
 function listEventHandlers(client) {
-    return client._eventBuilders;
+	return client._eventBuilders;
 }
 async function catchUp(client) {
-    await client.updateManager.catchUp();
+	await client.updateManager.catchUp();
 }
+exports.StopPropagation = require_client_updates_StopPropagation.StopPropagation;
+exports.addEventHandler = addEventHandler;
+exports.catchUp = catchUp;
+exports.listEventHandlers = listEventHandlers;
+exports.on = on;
+exports.removeEventHandler = removeEventHandler;

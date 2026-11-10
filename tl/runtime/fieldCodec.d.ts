@@ -1,6 +1,7 @@
 import type { Reader } from "../binary/Reader";
 import type { Writer } from "../binary/Writer";
 import type { FieldDef } from "./schema";
+import { Buffer } from "../../platform";
 export interface BareReader {
     fromReader(reader: Reader): unknown;
 }

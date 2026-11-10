@@ -1,26 +1,32 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Factorizator = void 0;
-const big_integer_1 = __importDefault(require("big-integer"));
-const cifrante_1 = require("cifrante");
+Object.defineProperties(exports, {
+	__esModule: { value: true },
+	[Symbol.toStringTag]: { value: "Module" }
+});
+const require_runtime = require("../_virtual/_rolldown/runtime.js");
+const require_platform_crypto_index = require("../platform/crypto/index.js");
+require("../platform/index.js");
+let big_integer = require("big-integer");
+big_integer = require_runtime.__toESM(big_integer);
+// teleproto/crypto/Factorizator.ts
 function toNative(value) {
-    return BigInt(value.toString());
+	return BigInt(value.toString());
 }
 function fromNative(value) {
-    return (0, big_integer_1.default)(value.toString());
+	return (0, big_integer.default)(value.toString());
 }
-class Factorizator {
-    static gcd(a, b) {
-        return fromNative(cifrante_1.math.gcd(toNative(a), toNative(b)));
-    }
-    static factorize(pq) {
-        const { p, q } = cifrante_1.math.factor(toNative(pq));
-        return p < q
-            ? { p: fromNative(p), q: fromNative(q) }
-            : { p: fromNative(q), q: fromNative(p) };
-    }
-}
+var Factorizator = class {
+	static gcd(a, b) {
+		return fromNative(require_platform_crypto_index.gcd(toNative(a), toNative(b)));
+	}
+	static factorize(pq) {
+		const { p, q } = require_platform_crypto_index.factor(toNative(pq));
+		return p < q ? {
+			p: fromNative(p),
+			q: fromNative(q)
+		} : {
+			p: fromNative(q),
+			q: fromNative(p)
+		};
+	}
+};
 exports.Factorizator = Factorizator;

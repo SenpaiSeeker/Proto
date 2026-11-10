@@ -17,6 +17,7 @@
  * ```
  */
 import { Api } from "./tl/api";
+export { text, bold, italic, underline, strike, code, subscript, superscript, marked, spoiler, link, email, phone, mention, anchor, math, date, customEmoji, type RichTextLike, type RichDateOptions, } from "./tl/custom/richText";
 /**
  * Media referenced from HTML/Markdown content by id: map of id → uploaded
  * photo or document. Reference them from the content by that id
@@ -63,4 +64,3 @@ export declare function toPlainText(source: RichSource): string;
 export declare function toMarkdown(source: RichSource): string;
 /** Renders a rich message to HTML. Media are emitted as tags with `data-photo-id`/`data-document-id` attributes pointing into `richMessage.photos`/`documents`. */
 export declare function toHtml(source: RichSource): string;
-export {};
