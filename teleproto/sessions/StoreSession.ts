@@ -1,11 +1,50 @@
 import { MemorySession } from "./Memory";
 import type { StoredUpdateState } from "./Abstract";
-import store, { StoreBase } from "store2";
 import { AuthKey } from "../crypto/AuthKey";
 import bigInt from "big-integer";
 import { FileStore } from "./FileStore";
-import { isAbsolute, resolve } from "path";
-import { existsSync } from "fs";
+import { Buffer, fs } from "../platform";
+
+interface StoreArea {
+    readonly length: number;
+    key(index: number): string | null;
+    getItem(key: string): string | null;
+    setItem(key: string, value: string): void;
+    removeItem(key: string): void;
+}
+
+class JsonStore {
+    constructor(private readonly area: StoreArea) {}
+
+    get(key: string): any {
+        const value = this.area.getItem(key);
+        if (value === null) return null;
+        try {
+            return JSON.parse(value);
+        } catch {
+            return value;
+        }
+    }
+
+    set(key: string, value: unknown): void {
+        this.area.setItem(key, value === undefined || typeof value === "function" ? String(value) : JSON.stringify(value));
+    }
+
+    remove(key: string): void {
+        this.area.removeItem(key);
+    }
+
+    each(visit: (key: string, value: any) => boolean | void): void {
+        for (let i = 0, count = this.area.length; i < count; i++) {
+            const key = this.area.key(i);
+            if (key !== null && visit(key, this.get(key)) === false) return;
+            if (count > this.area.length) {
+                count--;
+                i--;
+            }
+        }
+    }
+}
 
 /**
  * Persistent session that stores auth keys and entity data on disk.
@@ -27,7 +66,7 @@ import { existsSync } from "fs";
 export class StoreSession extends MemorySession {
     private readonly sessionName: string;
     private readonly fileStore: FileStore;
-    private store: StoreBase;
+    private store: JsonStore;
     private entityRowsLoaded = false;
 
     constructor(sessionName: string, divider = ":") {
@@ -37,12 +76,14 @@ export class StoreSession extends MemorySession {
                 "Session name can't be 'session'. Please use a different name."
             );
         }
-        const directory = resolve(sessionName);
-        const legacyDirectory = resolve("./" + sessionName);
-        this.fileStore = new FileStore(isAbsolute(sessionName) && !existsSync(directory) && existsSync(legacyDirectory)
-            ? legacyDirectory
-            : directory);
-        this.store = store.area(sessionName, this.fileStore);
+        const directory = fs.resolve(sessionName);
+        const legacyDirectory = fs.resolve("./" + sessionName);
+        this.fileStore = new FileStore(
+            fs.isAbsolute(sessionName) && !fs.exists(directory) && fs.exists(legacyDirectory)
+                ? legacyDirectory
+                : directory
+        );
+        this.store = new JsonStore(this.fileStore);
         if (divider == undefined) {
             divider = ":";
         }
@@ -159,7 +200,11 @@ export class StoreSession extends MemorySession {
     }
 
     delete() {
-        this.store.clear();
+        const keys: string[] = [];
+        this.store.each((key) => {
+            if (key.startsWith(this.sessionName)) keys.push(key);
+        });
+        for (const key of keys) this.store.remove(key);
         super.delete();
     }
 

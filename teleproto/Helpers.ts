@@ -1,9 +1,7 @@
 import bigInt from "big-integer";
 import type { EntityLike } from "./define";
 import type { Api } from "./tl";
-import crypto from "crypto";
-import zlib from "node:zlib";
-import { math, sha1 as hashSha1, sha256 as hashSha256 } from "cifrante";
+import { Buffer, compression, crypto, timers } from "./platform";
 
 export function asBuffer(bytes: Uint8Array): Buffer {
     return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -45,7 +43,7 @@ export function readBigIntFromBuffer(
     let i = count8b;
     while(i>0){
         let bi = little ? buffer.readBigUInt64LE(buffer.length - (count8b-i+1)*8 )
-                        : buffer.readBigUint64BE((count8b-i)*8);
+                        : buffer.readBigUInt64BE((count8b-i)*8);
         resBigInt = bi + (resBigInt << bi64);
 
         --i;
@@ -66,7 +64,7 @@ export function readBigIntFromBuffer(
         //read 64 bits and discard excess bits
         let bi = little ?
               buffer.readBigUInt64LE(0)
-            : buffer.readBigUint64BE(buffer.length-8);
+            : buffer.readBigUInt64BE(buffer.length-8);
         bi = BigInt.asUintN(8*bytesLeft, bi); // discard higher bits - garbage
         resBigInt = bi + (resBigInt << BigInt(8*bytesLeft));
     }
@@ -275,31 +273,7 @@ export function generateRandomBytes(count: number): Buffer {
 }
 
 /**
- * Calculate the key based on Telegram guidelines, specifying whether it's the client or not
- * @param sharedKey
- * @param msgKey
- * @param client
- * @returns {{iv: Buffer, key: Buffer}}
- */
-
-/*CONTEST
-this is mtproto 1 (mostly used for secret chats)
-async function calcKey(sharedKey, msgKey, client) {
-    const x = client === true ? 0 : 8
-    const [sha1a, sha1b, sha1c, sha1d] = await Promise.all([
-        sha1(Buffer.concat([msgKey, sharedKey.slice(x, x + 32)])),
-        sha1(Buffer.concat([sharedKey.slice(x + 32, x + 48), msgKey, sharedKey.slice(x + 48, x + 64)])),
-        sha1(Buffer.concat([sharedKey.slice(x + 64, x + 96), msgKey])),
-        sha1(Buffer.concat([msgKey, sharedKey.slice(x + 96, x + 128)]))
-    ])
-    const key = Buffer.concat([sha1a.slice(0, 8), sha1b.slice(8, 20), sha1c.slice(4, 16)])
-    const iv = Buffer.concat([sha1a.slice(8, 20), sha1b.slice(0, 8), sha1c.slice(16, 20), sha1d.slice(0, 8)])
-    return {
-        key,
-        iv
-    }
-}
-
+ * Trims whitespace from both ends of the text and shifts the entities to match.
  */
 export function stripText(text: string, entities: Api.TypeMessageEntity[]) {
     if (!entities || !entities.length) {
@@ -384,8 +358,7 @@ export function convertToLittle(buf: Buffer): Buffer {
  * @returns {Promise}
  */
 export function sha1(data: Buffer): Promise<Buffer> {
-    // @ts-ignore
-    return asBuffer(hashSha1.sync(data));
+    return crypto.hash("sha1", data) as unknown as Promise<Buffer>;
 }
 
 /**
@@ -394,8 +367,7 @@ export function sha1(data: Buffer): Promise<Buffer> {
  * @returns {Promise}
  */
 export function sha256(data: Buffer): Promise<Buffer> {
-    // @ts-ignore
-    return asBuffer(hashSha256.sync(data));
+    return crypto.hash("sha256", data) as unknown as Promise<Buffer>;
 }
 
 /**
@@ -413,15 +385,7 @@ export function modExp(
     if (b.lesserOrEquals(bigInt.zero)) {
         return bigInt.one;
     }
-    return bigInt(
-        math
-            .modPow(
-                BigInt(a.toString()),
-                BigInt(b.toString()),
-                BigInt(n.toString())
-            )
-            .toString()
-    );
+    return bigInt(crypto.modPow(BigInt(a.toString()), BigInt(b.toString()), BigInt(n.toString())).toString());
 }
 
 /**
@@ -499,10 +463,7 @@ export function getRandomInt(min: number, max: number): number {
  * @param isUnref make a timer unref'ed
  * @returns {Promise}
  */
-export const sleep = (ms: number, isUnref: boolean = false) =>
-    new Promise((resolve) =>
-        isUnref ? setTimeout(resolve, ms).unref() : setTimeout(resolve, ms)
-    );
+export const sleep = (ms: number, isUnref: boolean = false): Promise<unknown> => timers.sleep(ms, { ref: !isUnref });
 
 /**
  * Helper to export two buffers of same length
@@ -517,43 +478,8 @@ export function bufferXor(a: Buffer, b: Buffer): Buffer {
     return Buffer.from(res);
 }
 
-// Taken from https://stackoverflow.com/questions/18638900/javascript-crc32/18639999#18639999
-function makeCRCTable() {
-    let c;
-    const crcTable = [];
-    for (let n = 0; n < 256; n++) {
-        c = n;
-        for (let k = 0; k < 8; k++) {
-            c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-        }
-        crcTable[n] = c;
-    }
-    return crcTable;
-}
-
-let crcTable: number[] | undefined = undefined;
-
-const nativeCrc32 = (
-    zlib as { crc32?: (data: Buffer | string, value?: number) => number }
-).crc32;
-
 export function crc32(buf: Buffer | string, previous = 0) {
-    if (nativeCrc32) {
-        return nativeCrc32(buf, previous) >>> 0;
-    }
-    if (!crcTable) {
-        crcTable = makeCRCTable();
-    }
-    if (!Buffer.isBuffer(buf)) {
-        buf = Buffer.from(buf);
-    }
-    let crc = previous ^ -1;
-
-    for (let index = 0; index < buf.length; index++) {
-        const byte = buf[index];
-        crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
-    }
-    return (crc ^ -1) >>> 0;
+    return compression.crc32(buf, previous);
 }
 
 const unionIdCache = new Map<string, number>();

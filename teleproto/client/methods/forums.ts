@@ -5,7 +5,7 @@ import { generateRandomBigInt } from "../../Helpers";
 import { Api } from "../../tl";
 import { getInputChannel } from "../../Utils";
 
-/** Parameters for {@link createForumTopic}. */
+/** Parameters for {@link TelegramClient.createForumTopic}. */
 export interface CreateForumTopicParams {
     /** The topic title. */
     title: string;
@@ -41,7 +41,7 @@ export async function createForumTopic(
     );
 }
 
-/** Parameters for {@link editForumTopic}. Only the fields you set are changed. */
+/** Parameters for {@link TelegramClient.editForumTopic}. Only the fields you set are changed. */
 export interface EditForumTopicParams {
     /** New topic title. */
     title?: string;
@@ -107,7 +107,7 @@ export async function reorderPinnedForumTopics(
     );
 }
 
-/** Parameters for {@link getForumTopics}. */
+/** Parameters for {@link TelegramClient.getForumTopics}. */
 export interface GetForumTopicsParams {
     /** Search query for topic titles. */
     search?: string;
@@ -160,13 +160,15 @@ export async function toggleForum(
     client: TelegramClient,
     entity: EntityLike,
     enabled: boolean,
-    tabs: boolean = false
+    tabs: boolean = false,
+    sidebar: boolean = false
 ) {
     const channel = await client.getInputEntity(entity);
     return client.api.channels.toggleForum({
         channel: getInputChannel(channel),
         enabled: enabled,
         tabs: tabs,
+        sidebar: sidebar,
     });
 }
 

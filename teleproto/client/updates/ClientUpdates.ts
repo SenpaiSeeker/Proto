@@ -1,5 +1,4 @@
 import bigInt from "big-integer";
-import { setMaxListeners } from "events";
 import { Api } from "../../tl";
 import type { EntityLike } from "../../define";
 import type { TelegramClient } from "../TelegramClient";
@@ -7,6 +6,7 @@ import type { EventBuilder } from "../../events/common";
 import { _intoIdSet } from "../../events/common";
 import { getPeerId } from "../../Utils";
 import { isArrayLike } from "../../Helpers";
+import { events } from "../../platform";
 import type { UpdateState, ChannelPollingState } from "./UpdateManager";
 import { UpdateConnectionState } from "../../network";
 import { UpdateContext, type WithUpdateContext } from "./UpdateContext";
@@ -58,6 +58,7 @@ type UpdateFields = {
     message?: { peerId?: Api.TypePeer };
     _entities?: Map<string, Api.TypeUser | Api.TypeChat>;
     state?: Record<string, unknown>;
+    missed?: boolean;
 };
 
 const fieldsOf = (update: unknown): UpdateFields => (update ?? {}) as UpdateFields;
@@ -436,29 +437,32 @@ export class ClientUpdates {
                     !["CHANNEL_PRIVATE", "CHANNEL_INVALID", "USERNAME_INVALID", "USERNAME_NOT_OCCUPIED", "PEER_ID_INVALID"].includes(code ?? "");
                 await this.reportError(error as Error, undefined);
             };
+            const inputs: Api.InputPeerChannel[] = [];
             for (const chat of entry.chats) {
                 if (!active()) return;
                 try {
                     const input = await this.client.getInputEntity(chat);
-                    if (!active()) return;
-                    if (!(input instanceof Api.InputPeerChannel)) continue;
-                    const channelId = input.channelId.toString();
-                    if (entry.channels.has(channelId) || pendingChannels.has(channelId)) continue;
-                    pendingChannels.add(channelId);
-                    const subscription = this.client.updateManager.watchChannel(
-                        channelId,
-                        new Api.InputChannel({
-                            channelId: input.channelId,
-                            accessHash: input.accessHash,
-                        }),
-                        controller.signal,
-                    );
-                    pending.push(subscription.then(() => {
-                        if (active()) entry.channels.add(channelId);
-                    }).catch(failed));
+                    if (input instanceof Api.InputPeerChannel) inputs.push(input);
                 } catch (error) {
                     await failed(error);
                 }
+            }
+            if (!active()) return;
+            for (const input of inputs) {
+                const channelId = input.channelId.toString();
+                if (entry.channels.has(channelId) || pendingChannels.has(channelId)) continue;
+                pendingChannels.add(channelId);
+                const subscription = this.client.updateManager.watchChannel(
+                    channelId,
+                    new Api.InputChannel({
+                        channelId: input.channelId,
+                        accessHash: input.accessHash,
+                    }),
+                    controller.signal,
+                );
+                pending.push(subscription.then(() => {
+                    if (active()) entry.channels.add(channelId);
+                }).catch(failed));
             }
             await Promise.all(pending);
             if (retry && active()) {
@@ -647,6 +651,9 @@ export class ClientUpdates {
 
     private attachContext(event: object, update: AnyUpdate = event as AnyUpdate): void {
         if ("context" in event) return;
+        if (!("missed" in event)) {
+            Object.defineProperty(event, "missed", { value: fieldsOf(update).missed === true, enumerable: false, configurable: true });
+        }
         let context: UpdateContext | undefined;
         Object.defineProperty(event, "context", {
             get: () => context ??= new UpdateContext(
@@ -780,6 +787,6 @@ async function runChain(
 
 function watchController(): AbortController {
     const controller = new AbortController();
-    setMaxListeners(0, controller.signal);
+    events.setMaxListeners(0, controller.signal);
     return controller;
 }

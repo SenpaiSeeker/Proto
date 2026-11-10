@@ -2,11 +2,9 @@ import { Api } from "../../tl";
 
 import type { TelegramClient } from "../TelegramClient";
 import { generateRandomLong, unionId } from "../../Helpers";
+import { Buffer, crypto, fs } from "../../platform";
 import { getInputMedia, getMessageId } from "../../Utils";
 import { EntityLike, FileLike, MarkupLike, MessageIDLike } from "../../define";
-import path from "path";
-import { promises as fs } from "fs";
-import { createHash } from "crypto";
 import * as utils from "../../Utils";
 import { _parseMessageText } from "./messageParse";
 import bigInt, { BigInteger } from "big-integer";
@@ -144,7 +142,7 @@ export async function uploadFile(
         const parts = uploader.partCount;
         const input = uploader.isBig
             ? new Api.InputFileBig({ id: fileId, parts, name })
-            : new Api.InputFile({ id: fileId, parts, name, md5Checksum: createHash("md5").update(await source.read(0, size)).digest("hex") });
+            : new Api.InputFile({ id: fileId, parts, name, md5Checksum: crypto.hash("md5", await source.read(0, size)).toString("hex") });
         rememberUpload(input, {
             fileId,
             size,
@@ -469,11 +467,11 @@ export async function _fileToMedia(
                 videoTimestamp: videoTimestamp,
             });
         }
-    } else if (!(typeof file == "string") || (await fs.lstat(file)).isFile()) {
+    } else if (!(typeof file == "string") || await fs.isFile(file)) {
         if (typeof file == "string") {
             createdFile = new CustomFile(
-                path.basename(file),
-                (await fs.stat(file)).size,
+                fs.basename(file),
+                await fs.size(file),
                 file
             );
         } else if (isNamedBlob(file) || file instanceof CustomFile) {
@@ -532,8 +530,8 @@ export async function _fileToMedia(
             // todo refactor
             if (typeof thumb == "string") {
                 uploadedThumb = new CustomFile(
-                    path.basename(thumb),
-                    (await fs.stat(thumb)).size,
+                    fs.basename(thumb),
+                    await fs.size(thumb),
                     thumb
                 );
             } else if (isNamedBlob(thumb)) {

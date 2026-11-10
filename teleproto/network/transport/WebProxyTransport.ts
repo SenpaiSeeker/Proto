@@ -1,11 +1,7 @@
-import { setMaxListeners } from "node:events";
-import { isIP } from "node:net";
-import { setTimeout as delay } from "node:timers/promises";
-import { hmac } from "cifrante";
 import type { Connection } from "../connection/Connection";
 import type { SocketInterface, SocketFactory } from "./socket/types";
 import { ByteQueue } from "./socket/ByteStream";
-import { asBuffer } from "../../Helpers";
+import { Buffer, crypto, events, net, timers } from "../../platform";
 import { mtproxyConnection, parseProxySecret } from "./MTProxyTransport";
 import { Transport, ownFraming, type ResolvedTransport } from "./Transport";
 
@@ -46,6 +42,10 @@ export interface WebProxyOptions {
     webSocket?: new (url: string, protocols: string | string[]) => WebProxyWebSocket;
 }
 
+function base64url(data: Buffer): string {
+    return data.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 function configure(options: WebProxyOptions) {
     const input = options.server.trim().replace(/^https:\/\//i, "");
     const slash = input.indexOf("/");
@@ -56,7 +56,7 @@ function configure(options: WebProxyOptions) {
         throw new Error("WEB proxy requires a hostname and optional canonical base path");
     }
     const host = new URL(`https://${hostInput}`).hostname;
-    if (isIP(host) || host.length > 253 || !host.includes(".") ||
+    if (net.isIP(host) || host.length > 253 || !host.includes(".") ||
         !host.split(".").every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))) {
         throw new Error("WEB proxy requires a DNS hostname");
     }
@@ -65,7 +65,7 @@ function configure(options: WebProxyOptions) {
     if (/^(?:[a-fA-F0-9]{2})+$/.test(encoded)) secret = Buffer.from(encoded, "hex");
     else if (/^[A-Za-z0-9+/_-]+={0,2}$/.test(encoded)) {
         secret = Buffer.from(encoded, "base64");
-        if (secret.toString("base64url") !== encoded.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_")) {
+        if (base64url(secret) !== encoded.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_")) {
             throw new Error("Invalid WEB proxy secret encoding");
         }
     } else throw new Error("Invalid WEB proxy secret encoding");
@@ -81,7 +81,7 @@ function configure(options: WebProxyOptions) {
     }
     if (maxStreams > 256) throw new Error("WEB proxy maxStreams cannot exceed 256");
     const context = path ? `tdesktop-web-proxy-bridge-v2\n${host}\n${path}` : `tdesktop-web-proxy-bridge-v1\n${host}`;
-    const capability = asBuffer(hmac.sha256.sync(secret, context)).toString("base64url");
+    const capability = base64url(crypto.hmac("sha256", secret, context));
     return {
         host, base: `https://${host}/${path ? path + "/" : ""}`, secret: secret.toString("hex"), capability,
         connectTimeoutMs, requestTimeoutMs, maxStreams, webSocket: options.webSocket
@@ -113,7 +113,7 @@ function parseFrames(data: Buffer): { type: number; id: number; payload: Buffer 
 }
 
 function token(value: string | null): string {
-    if (!value || !/^[A-Za-z0-9_-]{43}$/.test(value) || Buffer.from(value, "base64url").toString("base64url") !== value) {
+    if (!value || !/^[A-Za-z0-9_-]{43}$/.test(value) || base64url(Buffer.from(value, "base64")) !== value) {
         throw new Error("Invalid WEB proxy token");
     }
     return value;
@@ -156,7 +156,7 @@ class RelayTransport {
     private wsTimer?: ReturnType<typeof setTimeout>;
 
     constructor(readonly config: Configuration) {
-        setMaxListeners(config.maxStreams * 3 + 16, this.controller.signal);
+        events.setMaxListeners(config.maxStreams * 3 + 16, this.controller.signal);
     }
 
     async open(stream: RelaySocket): Promise<void> {
@@ -256,7 +256,7 @@ class RelayTransport {
     wake(): void {
         if (this.pumpQueued || this.closed) return;
         this.pumpQueued = true;
-        setImmediate(() => {
+        timers.immediate(() => {
             this.pumpQueued = false;
             if (this.closed) return;
             try {
@@ -356,7 +356,7 @@ class RelayTransport {
                     if (!this.isLanes() || !lane.id || response.body.length || this.streams.has(lane.id)) throw new Error("Invalid WEB proxy lane closure");
                     this.finishLane(lane); return;
                 }
-                if (response.status === 204) await delay(10, undefined, { signal: lane.controller.signal });
+                if (response.status === 204) await timers.sleep(10, { signal: lane.controller.signal });
             }
         })().catch(error => { if (!lane.closed) this.fail(error instanceof Error ? error : closedError()); });
     }
@@ -544,7 +544,7 @@ class RelayTransport {
                 clearTimeout(timer); this.controller.signal.removeEventListener("abort", abort); signal?.removeEventListener("abort", abort);
             }
             if (Date.now() + wait >= deadline) throw new Error("WEB proxy HTTP retry deadline exceeded");
-            await delay(wait, undefined, { signal: this.controller.signal });
+            await timers.sleep(wait, { signal: this.controller.signal });
         }
         throw closedError();
     }

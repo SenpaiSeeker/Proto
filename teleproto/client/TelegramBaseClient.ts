@@ -4,11 +4,11 @@ import type { SocketFactory as LegacySocketFactory } from "../compat/extensions/
 import { isLegacyProxyConnection } from "../compat/network/connection/TCPMTProxy";
 import type { TelegramClient } from "./TelegramClient";
 import { version } from "../Version";
+import { net, system } from "../platform";
 import { Session, StoreSession } from "../sessions";
 import { Logger } from "../extensions";
 import { Api } from "../tl";
 
-import os from "os";
 import { AuthKey } from "../crypto/AuthKey";
 import { addServerKey } from "../crypto/RSA";
 import { IGE } from "../crypto/IGE";
@@ -32,6 +32,7 @@ import { UpdateLoop } from "./updates/UpdateLoop";
 import type { ClientUpdates } from "./updates/ClientUpdates";
 import type { ResolvedTransport, Transport } from "../network/transport/Transport";
 import { TcpTransport } from "../network/transport/TcpTransport";
+import { WebSocketTransport } from "../network/transport/WebSocketTransport";
 import { SocksTransport } from "../network/transport/SocksTransport";
 import { MTProxyTransport } from "../network/transport/MTProxyTransport";
 import { WebProxyTransport, type WebProxyOptions } from "../network/transport/WebProxyTransport";
@@ -114,7 +115,7 @@ export interface DownloadPoolOptions {
 }
 
 export interface TelegramClientParams {
-    /** MTProto packet framing. Defaults to {@link ConnectionTCPObfuscated}. */
+    /** MTProto packet framing. Defaults to `ConnectionTCPObfuscated` from `teleproto/network/connection`. */
     connection?: typeof Connection;
     /**
      * Whether to connect to the servers through IPv6 or not. By default this is false.
@@ -159,7 +160,7 @@ export interface TelegramClientParams {
      */
     reconnectRetries?: number;
     /**
-     * How the client reaches Telegram: `TcpTransport` (default), `SocksTransport`, `HttpProxyTransport`,
+     * How the client reaches Telegram: `TcpTransport` (default; `WebSocketTransport` where TCP is unavailable), `SocksTransport`, `HttpProxyTransport`,
      * `MTProxyTransport`, `WebSocketTransport` or `WebProxyTransport`.
      */
     transport?: Transport;
@@ -177,9 +178,12 @@ export interface TelegramClientParams {
     autoReconnect?: boolean;
     /** Deliver updates one at a time, awaiting all handlers. Defaults to false. Slow handlers accumulate queued updates; destroy clears pending work. */
     sequentialUpdates?: boolean;
-    /** The threshold below which the library should automatically sleep on flood wait and slow mode wait errors (inclusive).<br/>
-     *  For instance, if a FloodWaitError for 17s occurs and floodSleepThreshold is 20s, the library will sleep automatically.<br/>
-     *  If the error was for 21s, it would raise FloodWaitError instead. defaults to 60 sec.*/
+    /**
+     * Fetch the updates missed while offline when the session has a saved update state.
+     * `false` starts from the current state instead, like the Bot API's `drop_pending_updates`. Defaults to true.
+     */
+    catchUp?: boolean;
+    /** Flood waits up to this many seconds (inclusive) are slept through and retried; longer ones throw `FloodWaitError`. Defaults to 60. */
     floodSleepThreshold?: number;
     /**
      * Device model to be sent when creating the initial connection. Defaults to os.type().toString().
@@ -263,6 +267,7 @@ const clientParamsDefault = {
     downloadRetries: 5,
     autoReconnect: true,
     sequentialUpdates: false,
+    catchUp: true,
     floodSleepThreshold: 60,
     deviceModel: "",
     systemVersion: "",
@@ -344,6 +349,8 @@ export abstract class TelegramBaseClient<S extends Session = Session> {
     public _channelPollConcurrency: number;
     /** @hidden */
     public readonly _sequentialUpdates: boolean;
+    /** @hidden */
+    public readonly _catchUp: boolean;
     public _lastRequest?: number;
     /**
      * Epoch ms of the last message decrypted on ANY session. Distinguishes a
@@ -431,6 +438,7 @@ export abstract class TelegramBaseClient<S extends Session = Session> {
         this._testServers = clientParams.testServers!;
         this._requestRetries = clientParams.requestRetries!;
         this._sequentialUpdates = !!clientParams.sequentialUpdates;
+        this._catchUp = clientParams.catchUp !== false;
         this._downloadRetries = clientParams.downloadRetries!;
         this._connectionRetries = clientParams.connectionRetries!;
         this._reconnectRetries = clientParams.reconnectRetries!;
@@ -474,7 +482,7 @@ export abstract class TelegramBaseClient<S extends Session = Session> {
         } else {
             transport =
                 clientParams.transport ??
-                (clientParams.proxy ? proxyTransport(clientParams.proxy) : new TcpTransport());
+                (clientParams.proxy ? proxyTransport(clientParams.proxy) : net.tcp ? new TcpTransport() : new WebSocketTransport());
         }
         const route = transport.resolve(connection);
         this._transport = route;
@@ -484,9 +492,9 @@ export abstract class TelegramBaseClient<S extends Session = Session> {
         this._initRequest = new Api.InitConnection({
             apiId: this.apiId,
             deviceModel:
-                clientParams.deviceModel || os.type().toString() || "Unknown",
+                clientParams.deviceModel || system.deviceModel() || "Unknown",
             systemVersion:
-                clientParams.systemVersion || os.release().toString() || "1.0",
+                clientParams.systemVersion || system.systemVersion() || "1.0",
             appVersion: clientParams.appVersion || "1.0",
             langCode: clientParams.langCode || clientParamsDefault.langCode,
             langPack: clientParams.langPack || "",
